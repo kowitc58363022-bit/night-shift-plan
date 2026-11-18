@@ -8,16 +8,25 @@
 :root{--bg:#f5f6f8;--card:#fff;--fg:#1d2330;--mute:#6b7280;--line:#e2e5ea;--ok:#15803d;--okbg:#dcfce7;--ng:#b91c1c;--ngbg:#fee2e2;--acc:#1d4ed8}
 @media (prefers-color-scheme:dark){:root{--bg:#111418;--card:#1b1f26;--fg:#e8eaee;--mute:#9aa3af;--line:#2c323c;--ok:#4ade80;--okbg:#14301f;--ng:#f87171;--ngbg:#3a1717;--acc:#7aa2ff}}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,"Segoe UI",Tahoma,sans-serif}
-header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:10px 16px}
-header .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-h1{font-size:17px;margin:0 0 6px}
-input,select,textarea{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;min-height:40px}
-nav{display:flex;gap:6px;overflow-x:auto;margin-top:8px}
-nav button{white-space:nowrap}
-button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:8px;padding:8px 12px;min-height:40px;cursor:pointer}
-button.on{background:var(--acc);border-color:var(--acc);color:#fff}
-main{max-width:760px;margin:0 auto;padding:12px 16px 80px}
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:8px 16px}
+header .row{display:flex;gap:8px;align-items:center;max-width:760px;margin:0 auto}
+header label{display:flex;align-items:center;gap:6px}
+#who{flex:1;text-align:right;font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+input,select,textarea{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;min-height:44px}
+nav{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin:8px auto 0;max-width:760px}
+nav:empty{display:none}
+nav button{padding:8px 2px;font-size:14px;white-space:nowrap}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:8px;padding:8px 12px;min-height:44px;cursor:pointer}
+button.on,button.primary{background:var(--acc);border-color:var(--acc);color:#fff}
+button.primary{font-weight:600;width:100%}
+button.primary:disabled{opacity:.6}
+main{max-width:760px;margin:0 auto;padding:12px 16px 24px}
+.bar{position:sticky;bottom:0;z-index:4;background:var(--bg);padding:8px 0 calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+.bar .saved{text-align:center;margin-top:4px}
+details.card>summary{cursor:pointer;font-weight:600;font-size:15px;min-height:28px;list-style-position:inside}
+.warn{color:var(--mute);font-weight:400;font-size:14px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
 .card h3{margin:0 0 4px;font-size:15px}
 .meta{color:var(--mute);font-size:13px}
@@ -27,12 +36,12 @@ main{max-width:760px;margin:0 auto;padding:12px 16px 80px}
 .f label{flex:1;font-size:14px}
 .f small{display:block;color:var(--mute)}
 .f input[type=number],.f input[type=text]{width:120px;text-align:right}
-.tog{min-width:64px;font-weight:600}
+.tog{min-width:72px;font-weight:600}
 .tog.g{background:var(--okbg);color:var(--ok);border-color:var(--ok)}
 .tog.ng{background:var(--ngbg);color:var(--ng);border-color:var(--ng)}
 .bad{border-color:var(--ng)!important;background:var(--ngbg)!important;color:var(--ng)}
-.chk{display:flex;gap:8px;align-items:flex-start;padding:4px 0;font-size:14px}
-.chk input{min-height:auto;width:20px;height:20px;margin-top:2px}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:10px 0;min-height:44px;font-size:14px;cursor:pointer}
+.chk input{min-height:auto;width:24px;height:24px;margin:0;flex:none}
 textarea{width:100%;min-height:60px;margin-top:6px}
 .sum{font-weight:600;margin:6px 0 10px}
 .sum.bad{padding:8px;border-radius:8px}
@@ -41,11 +50,9 @@ textarea{width:100%;min-height:60px;margin-top:6px}
 </head>
 <body>
 <header>
-  <h1>Night Shift Plan</h1>
-  <div class="row">
-    <input type="date" id="date" aria-label="วันที่เข้ากะ">
-    <span id="who" class="meta" style="flex:1"></span>
-    <button id="logout" hidden>ออกจากระบบ</button>
+  <div class="row" id="hrow">
+    <label class="meta">กะ <input type="date" id="date"></label>
+    <span id="who"></span>
   </div>
   <nav id="tabs"></nav>
 </header>
@@ -74,6 +81,10 @@ const ADRAIN=[['CACS1',['ACP-CS1-1','ACP-CS1-2','ACP-CS1-3','ACP-CS1-4','ACP-CS1
 const LIGHT=[{title:'Lighting Office (ไฟไม่สว่าง = NG แล้วเปลี่ยนหลอดโดยด่วน)',f:['Office Room','Meeting Room1','Meeting Room2','Conf.1','Conf.2','CPU.Room','Recept Europe','Recept Thai','Recept 3','Recept 4','M.D. Room','D.M.D.Room'].map(r=>G(r,r))}];
 const FORMS={sub1:['Sub 1',SUB1],sub2:['Sub 2',SUB2],adrain:['Auto drain',ADRAIN],light:['Light',LIGHT]};
 const TABS=[['tasks','งานคืนนี้'],...Object.entries(FORMS).map(([k,v])=>[k,v[0]]),['data','ข้อมูล']];
+const SHORT={tasks:'คืนนี้',sub1:'Sub1',sub2:'Sub2',adrain:'Drain',light:'ไฟ',data:'ข้อมูล'}; // fits 6 tabs in one row at 375px
+// Time-slot groups for tonight's tasks, in shift order.
+const SLOTS=['20:00–21:00 เริ่มกะ','21:00–05:00 งานหลัก','05:00–07:00','07:00–08:00 ก่อนเลิกกะ'];
+const slotOf=time=>{const h=parseInt((time.match(/\d{1,2}/)||[])[0]);return isNaN(h)?-1:h>=19&&h<21?0:h>=21||h<5?1:h<7?2:3};
 
 // shortcut: data lives only in this browser's localStorage; upgrade to a shared backend when several people/devices must see the same records.
 let db; try{db=JSON.parse(localStorage.getItem('nsp'))||{}}catch(e){db={}}
@@ -92,7 +103,6 @@ const pad=n=>String(n).padStart(2,'0'), iso=d=>d.getFullYear()+'-'+pad(d.getMont
 const shiftDate=(now=new Date())=>{const d=new Date(now);if(d.getHours()<8)d.setDate(d.getDate()-1);return iso(d)};
 let tab='tasks';
 $('date').value=shiftDate();
-$('logout').onclick=()=>{if(confirm('ออกจากระบบ? ข้อมูลที่ยังไม่ส่งจะยังอยู่ในเครื่อง')){delete db.user;save();render()}};
 $('date').onchange=render;
 const rec=k=>{const key=k+'|'+$('date').value;return db.rec[key]=db.rec[key]||{}};
 const touch=r=>{r._by=db.user?.name;r._at=new Date().toLocaleString('th-TH');r._sent=false;save()};
@@ -110,7 +120,9 @@ async function send(key,date){
     r._sent=true;save();return 'ส่งเข้า Google Sheet แล้ว';
   }catch(e){return 'ส่งไม่สำเร็จ (เก็บไว้ในเครื่อง ส่งซ้ำได้ที่แท็บ ข้อมูล): '+e.message}
 }
-async function confirmSend(key,rerender){
+// warnings: things that are probably forgotten; the user can still send after confirming.
+async function confirmSend(key,rerender,warnings){
+  if(warnings.length&&!confirm(warnings.join('\n')+'\n\nส่งเลยไหม?'))return;
   const r=rec(key);touch(r);rerender();
   $('status').textContent='กำลังส่ง...';
   const msg=await send(key,$('date').value);rerender();$('status').textContent=msg;
@@ -123,8 +135,10 @@ function value(f,r){return r[f.id]??(f.t==='gng'?'G':f.t==='sel'?f.opts[0]:'')}
 
 function renderForm(key){
   const [,groups]=FORMS[key], r=rec(key);
-  const bad=groups.flatMap(g=>g.f).filter(f=>isBad(f,value(f,r)));
-  let h=`<div class="sum ${bad.length?'bad':''}">${bad.length?'ผิดปกติ '+bad.length+' จุด: '+bad.map(f=>esc(f.label)).join(', '):'ทุกจุดปกติ (ค่าเริ่มต้น G — แตะเฉพาะจุดที่ผิดปกติ)'}</div>`;
+  const all=groups.flatMap(g=>g.f);
+  const bad=all.filter(f=>isBad(f,value(f,r))), blank=all.filter(f=>f.t==='num'&&value(f,r)==='');
+  let h=`<div class="sum ${bad.length?'bad':''}">${bad.length?'ผิดปกติ '+bad.length+' จุด: '+bad.map(f=>esc(f.label)).join(', '):'ทุกจุดปกติ — แตะเปลี่ยนเฉพาะจุดที่ผิดปกติ'}
+  ${blank.length?`<div class="warn">ยังไม่กรอกค่า ${blank.length} ช่อง</div>`:''}</div>`;
   for(const g of groups){
     h+=`<div class="card"><h3>${esc(g.title)}</h3>`;
     for(const f of g.f){const v=value(f,r),b=isBad(f,v);
@@ -135,26 +149,40 @@ function renderForm(key){
       h+='</div>';}
     h+='</div>';}
   h+=`<div class="card"><h3>หมายเหตุ ${bad.length?'(ต้องกรอก เพราะมีจุดผิดปกติ)':''}</h3><textarea data-id="_note" class="${bad.length&&!r._note?'bad':''}">${esc(r._note||'')}</textarea>
-  <div class="saved">${r._at?'บันทึกล่าสุด '+esc(r._at)+' โดย '+esc(r._by||'-')+sentLabel(r):'ยังไม่ได้บันทึก — แก้ช่องใดก็ได้ หรือกดยืนยัน'}</div>
-  <button id="confirm" style="margin-top:8px;width:100%">ยืนยันผลตรวจ + ส่ง Google Sheet</button><div id="status" class="saved"></div></div>`;
+  <div class="saved">${r._at?'บันทึกล่าสุด '+esc(r._at)+' โดย '+esc(r._by||'-')+sentLabel(r):'ยังไม่ได้บันทึก'}</div></div>
+  <div class="bar"><button id="confirm" class="primary">ยืนยันผลตรวจ + ส่ง Google Sheet</button><div id="status" class="saved"></div></div>`;
   $('view').innerHTML=h;
   $('view').onclick=e=>{const t=e.target;
     if(t.dataset.t==='gng'){r[t.dataset.id]=t.textContent==='G'?'NG':'G';touch(r);renderForm(key)}
-    if(t.id==='confirm')confirmSend(key,()=>renderForm(key))};
+    if(t.id==='confirm')confirmSend(key,()=>renderForm(key),[
+      ...(blank.length?['ยังไม่กรอกค่า '+blank.length+' ช่อง: '+blank.map(f=>f.label).join(', ')]:[]),
+      ...(bad.length&&!r._note?['มีจุดผิดปกติ แต่ยังไม่เขียนหมายเหตุ']:[])])};
   $('view').onchange=e=>{const t=e.target;if(!t.dataset.id)return;r[t.dataset.id]=t.value;touch(r);renderForm(key)};
 }
 
 function renderTasks(){
   const day=new Date($('date').value+'T12:00').getDay(), list=TASKS[day], r=rec('tasks');
   const done=list.filter((_,i)=>r['t'+i]).length;
+  // A task with no time (e.g. "Check WWTP zone 2" header) takes the slot of the next timed task, so it stays with its sub-rows.
+  const slots=list.map(t=>slotOf(t.time));
+  for(let i=slots.length-1,next=-1;i>=0;i--){if(slots[i]<0)slots[i]=next;else next=slots[i]}
+  for(let i=0,prev=0;i<slots.length;i++){if(slots[i]<0)slots[i]=prev;else prev=slots[i]}
   let h=`<div class="sum">คืนวัน${DAYS_TH[day]} — เสร็จ ${done}/${list.length}</div>`;
-  list.forEach((t,i)=>{h+=`<div class="card ${t.sub?'sub':''}"><label class="chk"><input type="checkbox" data-id="t${i}" ${r['t'+i]?'checked':''}><span><b>${esc(t.name)}</b><br><span class="meta">${esc(t.time)} ${t.freq?'· '+esc(t.freq):''}</span></span></label>`;
-    t.checks.forEach((c,j)=>h+=`<label class="chk sub"><input type="checkbox" data-id="t${i}c${j}" ${r['t'+i+'c'+j]?'checked':''}>${esc(c)}</label>`);
-    h+='</div>'});
+  SLOTS.forEach((name,s)=>{
+    const idx=list.map((_,i)=>i).filter(i=>slots[i]===s);if(!idx.length)return;
+    const d=idx.filter(i=>r['t'+i]).length;
+    // Finished slots collapse so the open ones are what is left to do.
+    h+=`<details class="card" ${d<idx.length?'open':''}><summary>${esc(name)} <span class="warn">${d}/${idx.length}</span></summary>`;
+    for(const i of idx){const t=list[i];
+      h+=`<div class="${t.sub?'sub':''}"><label class="chk"><input type="checkbox" data-id="t${i}" ${r['t'+i]?'checked':''}><span><b>${esc(t.name)}</b><br><span class="meta">${esc(t.time)} ${t.freq?'· '+esc(t.freq):''}</span></span></label>`;
+      t.checks.forEach((c,j)=>h+=`<label class="chk sub"><input type="checkbox" data-id="t${i}c${j}" ${r['t'+i+'c'+j]?'checked':''}>${esc(c)}</label>`);
+      h+='</div>'}
+    h+='</details>'});
   h+=`<div class="card"><h3>หมายเหตุกะ</h3><textarea data-id="_note">${esc(r._note||'')}</textarea>
-  <div class="saved">${r._at?'บันทึกล่าสุด '+esc(r._at)+sentLabel(r):''}</div>
-  <button id="confirm" style="margin-top:8px;width:100%">ยืนยันจบกะ + ส่ง Google Sheet</button><div id="status" class="saved"></div></div>`;
-  $('view').innerHTML=h; $('view').onclick=e=>{if(e.target.id==='confirm')confirmSend('tasks',renderTasks)};
+  <div class="saved">${r._at?'บันทึกล่าสุด '+esc(r._at)+sentLabel(r):''}</div></div>
+  <div class="bar"><button id="confirm" class="primary">ยืนยันจบกะ + ส่ง Google Sheet</button><div id="status" class="saved"></div></div>`;
+  $('view').innerHTML=h;
+  $('view').onclick=e=>{if(e.target.id==='confirm')confirmSend('tasks',renderTasks,done<list.length?['งานยังไม่ติ๊ก '+(list.length-done)+' ข้อ']:[])};
   $('view').onchange=e=>{const t=e.target;if(!t.dataset.id)return;r[t.dataset.id]=t.type==='checkbox'?t.checked:t.value;touch(r);if(t.type==='checkbox')renderTasks()};
 }
 
@@ -174,10 +202,12 @@ function renderData(){
   <button id="resend" ${pending.length?'':'disabled'}>ส่งที่ค้างทั้งหมด</button><div id="status" class="saved"></div></div>`;
   h+='<div class="card"><h3>Export เป็น CSV (เปิดด้วย Excel ได้)</h3><p class="meta">ข้อมูลเก็บในเบราว์เซอร์เครื่องนี้เท่านั้น ควร export ทุกสิ้นเดือน</p>';
   for(const [k,l] of TABS.slice(0,-1))h+=`<button data-csv="${k}" style="margin:4px">${esc(l)}</button>`;
-  h+=`</div><div class="card"><h3>สำรอง / ย้ายเครื่อง</h3><button id="bk">ดาวน์โหลด backup (.json)</button> <label class="meta"> นำเข้า: <input type="file" id="imp" accept=".json"></label></div>`;
+  h+=`</div><div class="card"><h3>สำรอง / ย้ายเครื่อง</h3><button id="bk">ดาวน์โหลด backup (.json)</button> <label class="meta"> นำเข้า: <input type="file" id="imp" accept=".json"></label></div>
+  <div class="card"><h3>บัญชี</h3><p class="meta">เข้าสู่ระบบเป็น ${esc(db.user.name)}</p><button id="logout">ออกจากระบบ</button></div>`;
   $('view').innerHTML=h; $('view').onchange=null;
   const dl=(name,text,type)=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();URL.revokeObjectURL(a.href)};
-  $('view').onclick=async e=>{const k=e.target.dataset.csv;if(k)dl(`night-shift-${k}.csv`,csv(k),'text/csv');if(e.target.id==='bk')dl('night-shift-backup.json',JSON.stringify(db),'application/json');
+  $('view').onclick=async e=>{const k=e.target.dataset.csv;
+    if(e.target.id==='logout'&&confirm('ออกจากระบบ? ข้อมูลที่ยังไม่ส่งจะยังอยู่ในเครื่อง')){delete db.user;tab='tasks';save();return render()}if(k)dl(`night-shift-${k}.csv`,csv(k),'text/csv');if(e.target.id==='bk')dl('night-shift-backup.json',JSON.stringify(db),'application/json');
     if(e.target.id==='resend'){const msgs=[];for(const p of pending){const [key,date]=p.split('|');msgs.push(p+': '+await send(key,date))}renderData();$('status').textContent=msgs.join(' | ')}};
   $('imp').onchange=async e=>{try{const d=JSON.parse(await e.target.files[0].text());if(!d.rec)throw Error('ไฟล์ไม่ใช่ backup');Object.assign(db.rec,d.rec);save();alert('นำเข้าแล้ว')}catch(err){alert('นำเข้าไม่ได้: '+err.message)}};
 }
@@ -188,7 +218,7 @@ function renderLogin(){
   <p class="meta">ใช้ชื่อและ PIN 4 หลักตามที่หัวหน้าตั้งไว้ในแท็บ users ของ Google Sheet</p>
   <input id="lname" placeholder="ชื่อ" autocomplete="username" required style="width:100%;margin:6px 0">
   <input id="lpin" placeholder="PIN 4 หลัก" type="password" inputmode="numeric" pattern="\\d{4}" maxlength="4" autocomplete="current-password" required style="width:100%;margin:6px 0">
-  <button style="width:100%">เข้าสู่ระบบ</button><div id="status" class="saved"></div></form>`;
+  <button class="primary">เข้าสู่ระบบ</button><div id="status" class="saved"></div></form>`;
   $('view').onclick=$('view').onchange=null;
   $('login').onsubmit=async e=>{e.preventDefault();$('status').textContent='กำลังตรวจสอบ...';
     db.user={name:$('lname').value.trim(),pin:$('lpin').value};
@@ -197,9 +227,9 @@ function renderLogin(){
 }
 
 function render(){
-  $('who').textContent=db.user?'ผู้ตรวจ: '+db.user.name:''; $('logout').hidden=!db.user;
+  $('who').textContent=db.user?db.user.name:''; $('hrow').hidden=!db.user;
   if(!db.user)return renderLogin();
-  $('tabs').innerHTML=TABS.map(([k,l])=>`<button class="${k===tab?'on':''}" data-tab="${k}">${esc(l)}</button>`).join('');
+  $('tabs').innerHTML=TABS.map(([k,l])=>`<button class="${k===tab?'on':''}" data-tab="${k}" aria-label="${esc(l)}">${esc(SHORT[k])}</button>`).join('');
   tab==='tasks'?renderTasks():tab==='data'?renderData():renderForm(tab);
 }
 $('tabs').onclick=e=>{if(e.target.dataset.tab){tab=e.target.dataset.tab;render()}};
