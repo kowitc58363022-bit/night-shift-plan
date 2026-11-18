@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Night Shift Plan</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--fg:#1d2330;--mute:#6b7280;--line:#e2e5ea;--ok:#15803d;--okbg:#dcfce7;--ng:#b91c1c;--ngbg:#fee2e2;--acc:#1d4ed8}
+@media (prefers-color-scheme:dark){:root{--bg:#111418;--card:#1b1f26;--fg:#e8eaee;--mute:#9aa3af;--line:#2c323c;--ok:#4ade80;--okbg:#14301f;--ng:#f87171;--ngbg:#3a1717;--acc:#7aa2ff}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,"Segoe UI",Tahoma,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:10px 16px}
+header .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+h1{font-size:17px;margin:0 0 6px}
+input,select,textarea{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;min-height:40px}
+nav{display:flex;gap:6px;overflow-x:auto;margin-top:8px}
+nav button{white-space:nowrap}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:8px;padding:8px 12px;min-height:40px;cursor:pointer}
+button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+main{max-width:760px;margin:0 auto;padding:12px 16px 80px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+.card h3{margin:0 0 4px;font-size:15px}
+.meta{color:var(--mute);font-size:13px}
+.sub{margin-left:18px}
+.f{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.f:first-of-type{border-top:0}
+.f label{flex:1;font-size:14px}
+.f small{display:block;color:var(--mute)}
+.f input[type=number],.f input[type=text]{width:120px;text-align:right}
+.tog{min-width:64px;font-weight:600}
+.tog.g{background:var(--okbg);color:var(--ok);border-color:var(--ok)}
+.tog.ng{background:var(--ngbg);color:var(--ng);border-color:var(--ng)}
+.bad{border-color:var(--ng)!important;background:var(--ngbg)!important;color:var(--ng)}
+.chk{display:flex;gap:8px;align-items:flex-start;padding:4px 0;font-size:14px}
+.chk input{min-height:auto;width:20px;height:20px;margin-top:2px}
+textarea{width:100%;min-height:60px;margin-top:6px}
+.sum{font-weight:600;margin:6px 0 10px}
+.sum.bad{padding:8px;border-radius:8px}
+.saved{color:var(--mute);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Night Shift Plan</h1>
+  <div class="row">
+    <input type="date" id="date" aria-label="วันที่เข้ากะ">
+    <input type="text" id="checker" placeholder="ชื่อผู้ตรวจ" aria-label="ชื่อผู้ตรวจ" style="flex:1;min-width:140px">
+  </div>
+  <nav id="tabs"></nav>
+</header>
+<main id="view"></main>
+
+<script src="tasks.js"></script>
+<script>
+const DAYS_TH=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+const G=(id,label)=>({id,label,t:'gng'}), N=(id,label,min,max)=>({id,label,t:'num',min,max}), S=(id,label,opts)=>({id,label,t:'sel',opts});
+// Field specs copied from sheets Sub1/Sub2 headers; limits are the ones written in the header text.
+const subForm=lamps=>[
+ {title:'HV Bus / MCB 115kV',f:[G('vt','Oil level VT line'),G('ct','Oil level CT line'),N('mcb','MCB Pressure (MPa) ≥ 0.68',0.68)]},
+ {title:'Transformer',f:[N('tab','Counter Tab'),G('oil','Oil level Min-Max'),N('wind','Winding Temp (°C) ≤ 90',null,90),N('oilt','Oil temp (°C) ≤ 75',null,75),G('leak','Check leak'),G('sgtr','Silica gel TR Tank (ส้ม=G)'),G('sgol','Silica gel OLTC (ส้ม=G)'),G('walk','Walk around (สภาพโดยรวม/มด)')]},
+ {title:'AVR / REF / Metering',f:[N('avr','AVR Actual (kV) 19.8-24.2',19.8,24.2),G('r501','REF501 green light'),G('r502','REF502 green light'),N('tap','Tap PS02 Position'),N('v','Voltage'),N('a','Current (Amp)'),N('kw','Power (kW)'),N('pf','PF ≥ 0.85',0.85,1)]},
+ {title:'Annunciator / Lamp',f:[G('ann','Annunciator'),...lamps.map((l,i)=>G('lamp'+i,l))]},
+ {title:'Selector switch status',f:[S('trd','TR diff cut off SW',['OFF','ON']),S('ref','87 REF cut off',['OFF','ON']),S('avrm','AVR',['AUTO','MANUAL']),S('lr','Lower raise SW',['0','1','2']),G('ied','IED/PNL PLN control'),G('emg','Emergency SW (Open)')]},
+ ...['J01','J02','J03','J04'].map((j,i)=>({title:j,f:[...(i==0?[G(j+'fuse','Fuse Blown (Not show)')]:[]),G(j+'sep','Sepam (Not Alarm)'),G(j+'arc','Arc detector (Not Alarm)'),...(i==0?[N(j+'v','Voltage (V)')]:[]),N(j+'a','Current (Amp)'),N(j+'kw','Power (kW)'),S(j+'sel','Selector SW',['Remote','0'])]})),
+ {title:'Station',f:[G('swalk','Walk around (สภาพโดยรวม/มด)')]}
+];
+const SUB1=subForm(['S86T.1 Reset K68T1','S86T.2 Reset K68T2','Lamp test','H87T 87REF cut off','H90 AVR local','HDS CB local','HCB DC local']);
+const SUB2=subForm(['S86T.1 Reset K68T1','S86T.2 Reset K68T2','Lamp test','H.87T','H87T 87REF','H90 AVR local','HDS DS local','H.CB CB local','H.90.1']);
+const ADRAIN=[['CACS1',['ACP-CS1-1','ACP-CS1-2','ACP-CS1-3','ACP-CS1-4','ACP-CS1-5','ACP-CS1-6','AD-CS1-1','AD-CS1-2','AD-CS1-3','AD-CS1-4','AD-CS1-5','AD-CS1-6','AT-CS1-1']],
+ ['CACS2',['ACP-CS2-3','ACP-CS2-4','ACP-CS2-5','ACP-CS2-6','ACP-CS2-7','ACP-CS2-8','AD-CS2-3','AD-CS2-4','AD-CS2-5','AD-CS2-6','AD-CS2-7','AD-CS2-8','AT-CS2-1']],
+ ['CACS3',['ACP-CS3-1','ACP-CS3-2','ACP-CS3-3','ACP-CS3-4','AD-CS3-1','AD-CS3-2','AD-CS3-3','AD-CS3-4','AT-CS3-1']]]
+ .map(([area,ms])=>({title:area,f:ms.map(m=>S(m,m,['ปกติ','ผิดปกติ','ไม่เปิดใช้']))}));
+const LIGHT=[{title:'Lighting Office (ไฟไม่สว่าง = NG แล้วเปลี่ยนหลอดโดยด่วน)',f:['Office Room','Meeting Room1','Meeting Room2','Conf.1','Conf.2','CPU.Room','Recept Europe','Recept Thai','Recept 3','Recept 4','M.D. Room','D.M.D.Room'].map(r=>G(r,r))}];
+const FORMS={sub1:['Sub 1',SUB1],sub2:['Sub 2',SUB2],adrain:['Auto drain',ADRAIN],light:['Light',LIGHT]};
+const TABS=[['tasks','งานคืนนี้'],...Object.entries(FORMS).map(([k,v])=>[k,v[0]]),['data','ข้อมูล']];
+
+// shortcut: data lives only in this browser's localStorage; upgrade to a shared backend when several people/devices must see the same records.
+let db; try{db=JSON.parse(localStorage.getItem('nsp'))||{}}catch(e){db={}}
+db.rec=db.rec||{};
+const save=()=>{try{localStorage.setItem('nsp',JSON.stringify(db))}catch(e){alert('บันทึกไม่ได้: '+e.message)}};
+const $=id=>document.getElementById(id), esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pad=n=>String(n).padStart(2,'0'), iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+// Shift runs 20:00-08:00, so before 08:00 we are still on the previous date's shift.
+const shiftDate=(now=new Date())=>{const d=new Date(now);if(d.getHours()<8)d.setDate(d.getDate()-1);return iso(d)};
+let tab='tasks';
+$('date').value=shiftDate(); $('checker').value=db.checker||'';
+$('checker').oninput=e=>{db.checker=e.target.value;save()};
+$('date').onchange=render;
+const rec=k=>{const key=k+'|'+$('date').value;return db.rec[key]=db.rec[key]||{}};
+const touch=r=>{r._by=$('checker').value;r._at=new Date().toLocaleString('th-TH');r._sent=false;save()};
+
+// Google Sheet sync via Apps Script web app (google-apps-script/Code.gs). URL is set per device in tab ข้อมูล, not in source.
+function fieldsOf(key,date){
+  if(key!=='tasks')return FORMS[key][1].flatMap(g=>g.f).map(f=>[f.label,f]);
+  const list=TASKS[new Date(date+'T12:00').getDay()];
+  return list.flatMap((t,i)=>[[t.name,'t'+i],...t.checks.map((c,j)=>[t.name+' / '+c,'t'+i+'c'+j])]);
+}
+async function send(key,date){
+  const r=db.rec[key+'|'+date];
+  if(!db.url)return 'ยังไม่ได้ตั้งค่า Google Sheet URL (แท็บ ข้อมูล)';
+  const fields=fieldsOf(key,date).map(([label,f])=>[label,key==='tasks'?(r[f]?'✓':''):value(f,r)]);
+  try{
+    // No custom headers: text/plain body avoids a CORS preflight, which Apps Script does not answer.
+    const res=await fetch(db.url,{method:'POST',body:JSON.stringify({form:key,date,fields,note:r._note,checker:r._by,savedAt:r._at})});
+    const j=await res.json(); if(!j.ok)throw Error(j.error);
+    r._sent=true;save();return 'ส่งเข้า Google Sheet แล้ว';
+  }catch(e){return 'ส่งไม่สำเร็จ (เก็บไว้ในเครื่อง ส่งซ้ำได้ที่แท็บ ข้อมูล): '+e.message}
+}
+async function confirmSend(key,rerender){
+  if(!$('checker').value)return alert('กรอกชื่อผู้ตรวจก่อน');
+  const r=rec(key);touch(r);rerender();
+  $('status').textContent='กำลังส่ง...';
+  const msg=await send(key,$('date').value);rerender();$('status').textContent=msg;
+}
+const sentLabel=r=>r._at?(r._sent?' · ส่ง Sheet แล้ว':' · ยังไม่ได้ส่ง Sheet'):'';
+
+function outOfRange(f,v){if(f.t!=='num'||v===''||v==null)return false;v=+v;return (f.min!=null&&v<f.min)||(f.max!=null&&v>f.max)}
+function isBad(f,v){return f.t==='gng'?v==='NG':f.t==='sel'?(v!==undefined&&v!==f.opts[0]&&v!=='ไม่เปิดใช้'):outOfRange(f,v)}
+function value(f,r){return r[f.id]??(f.t==='gng'?'G':f.t==='sel'?f.opts[0]:'')}
+
+function renderForm(key){
+  const [,groups]=FORMS[key], r=rec(key);
+  const bad=groups.flatMap(g=>g.f).filter(f=>isBad(f,value(f,r)));
+  let h=`<div class="sum ${bad.length?'bad':''}">${bad.length?'ผิดปกติ '+bad.length+' จุด: '+bad.map(f=>esc(f.label)).join(', '):'ทุกจุดปกติ (ค่าเริ่มต้น G — แตะเฉพาะจุดที่ผิดปกติ)'}</div>`;
+  for(const g of groups){
+    h+=`<div class="card"><h3>${esc(g.title)}</h3>`;
+    for(const f of g.f){const v=value(f,r),b=isBad(f,v);
+      h+=`<div class="f"><label for="f_${esc(f.id)}">${esc(f.label)}</label>`;
+      if(f.t==='gng')h+=`<button id="f_${esc(f.id)}" class="tog ${v==='NG'?'ng':'g'}" data-id="${esc(f.id)}" data-t="gng">${v}</button>`;
+      else if(f.t==='sel')h+=`<select id="f_${esc(f.id)}" data-id="${esc(f.id)}" class="${b?'bad':''}">${f.opts.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
+      else h+=`<input id="f_${esc(f.id)}" type="number" inputmode="decimal" step="any" data-id="${esc(f.id)}" value="${esc(v)}" class="${b?'bad':''}">`;
+      h+='</div>';}
+    h+='</div>';}
+  h+=`<div class="card"><h3>หมายเหตุ ${bad.length?'(ต้องกรอก เพราะมีจุดผิดปกติ)':''}</h3><textarea data-id="_note" class="${bad.length&&!r._note?'bad':''}">${esc(r._note||'')}</textarea>
+  <div class="saved">${r._at?'บันทึกล่าสุด '+esc(r._at)+' โดย '+esc(r._by||'-')+sentLabel(r):'ยังไม่ได้บันทึก — แก้ช่องใดก็ได้ หรือกดยืนยัน'}</div>
+  <button id="confirm" style="margin-top:8px;width:100%">ยืนยันผลตรวจ + ส่ง Google Sheet</button><div id="status" class="saved"></div></div>`;
+  $('view').innerHTML=h;
+  $('view').onclick=e=>{const t=e.target;
+    if(t.dataset.t==='gng'){r[t.dataset.id]=t.textContent==='G'?'NG':'G';touch(r);renderForm(key)}
+    if(t.id==='confirm')confirmSend(key,()=>renderForm(key))};
+  $('view').onchange=e=>{const t=e.target;if(!t.dataset.id)return;r[t.dataset.id]=t.value;touch(r);renderForm(key)};
+}
+
+function renderTasks(){
+  const day=new Date($('date').value+'T12:00').getDay(), list=TASKS[day], r=rec('tasks');
+  const done=list.filter((_,i)=>r['t'+i]).length;
+  let h=`<div class="sum">คืนวัน${DAYS_TH[day]} — เสร็จ ${done}/${list.length}</div>`;
+  list.forEach((t,i)=>{h+=`<div class="card ${t.sub?'sub':''}"><label class="chk"><input type="checkbox" data-id="t${i}" ${r['t'+i]?'checked':''}><span><b>${esc(t.name)}</b><br><span class="meta">${esc(t.time)} ${t.freq?'· '+esc(t.freq):''}</span></span></label>`;
+    t.checks.forEach((c,j)=>h+=`<label class="chk sub"><input type="checkbox" data-id="t${i}c${j}" ${r['t'+i+'c'+j]?'checked':''}>${esc(c)}</label>`);
+    h+='</div>'});
+  h+=`<div class="card"><h3>หมายเหตุกะ</h3><textarea data-id="_note">${esc(r._note||'')}</textarea>
+  <div class="saved">${r._at?'บันทึกล่าสุด '+esc(r._at)+sentLabel(r):''}</div>
+  <button id="confirm" style="margin-top:8px;width:100%">ยืนยันจบกะ + ส่ง Google Sheet</button><div id="status" class="saved"></div></div>`;
+  $('view').innerHTML=h; $('view').onclick=e=>{if(e.target.id==='confirm')confirmSend('tasks',renderTasks)};
+  $('view').onchange=e=>{const t=e.target;if(!t.dataset.id)return;r[t.dataset.id]=t.type==='checkbox'?t.checked:t.value;touch(r);if(t.type==='checkbox')renderTasks()};
+}
+
+function csv(key){
+  const rows=Object.entries(db.rec).filter(([k])=>k.startsWith(key+'|')).sort();
+  const fields=key==='tasks'?null:FORMS[key][1].flatMap(g=>g.f);
+  const cols=fields?fields.map(f=>f.id):[...new Set(rows.flatMap(([,r])=>Object.keys(r)))].filter(c=>!c.startsWith('_'));
+  const q=s=>'"'+String(s??'').replace(/"/g,'""')+'"';
+  const head=['date',...(fields?fields.map(f=>f.label):cols),'note','checker','saved_at'];
+  const body=rows.map(([k,r])=>[k.split('|')[1],...(fields?fields.map(f=>value(f,r)):cols.map(c=>r[c])),r._note,r._by,r._at]);
+  return '﻿'+[head,...body].map(l=>l.map(q).join(',')).join('\r\n');
+}
+function renderData(){
+  const pending=Object.entries(db.rec).filter(([,r])=>r._at&&!r._sent).map(([k])=>k);
+  let h=`<div class="card"><h3>Google Sheet</h3><p class="meta">วาง URL ของ Apps Script (ลงท้าย /exec) ตั้งครั้งเดียวต่อเครื่อง</p>
+  <input type="url" id="url" value="${esc(db.url||'')}" placeholder="https://script.google.com/macros/s/.../exec" style="width:100%">
+  <p class="meta">ค้างส่ง ${pending.length} รายการ${pending.length?': '+pending.map(esc).join(', '):''}</p>
+  <button id="resend" ${pending.length?'':'disabled'}>ส่งที่ค้างทั้งหมด</button><div id="status" class="saved"></div></div>`;
+  h+='<div class="card"><h3>Export เป็น CSV (เปิดด้วย Excel ได้)</h3><p class="meta">ข้อมูลเก็บในเบราว์เซอร์เครื่องนี้เท่านั้น ควร export ทุกสิ้นเดือน</p>';
+  for(const [k,l] of TABS.slice(0,-1))h+=`<button data-csv="${k}" style="margin:4px">${esc(l)}</button>`;
+  h+=`</div><div class="card"><h3>สำรอง / ย้ายเครื่อง</h3><button id="bk">ดาวน์โหลด backup (.json)</button> <label class="meta"> นำเข้า: <input type="file" id="imp" accept=".json"></label></div>`;
+  $('view').innerHTML=h; $('view').onchange=null;
+  const dl=(name,text,type)=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();URL.revokeObjectURL(a.href)};
+  $('url').onchange=e=>{db.url=e.target.value.trim();save()};
+  $('view').onclick=async e=>{const k=e.target.dataset.csv;if(k)dl(`night-shift-${k}.csv`,csv(k),'text/csv');if(e.target.id==='bk')dl('night-shift-backup.json',JSON.stringify(db),'application/json');
+    if(e.target.id==='resend'){const msgs=[];for(const p of pending){const [key,date]=p.split('|');msgs.push(p+': '+await send(key,date))}renderData();$('status').textContent=msgs.join(' | ')}};
+  $('imp').onchange=async e=>{try{const d=JSON.parse(await e.target.files[0].text());if(!d.rec)throw Error('ไฟล์ไม่ใช่ backup');Object.assign(db.rec,d.rec);save();alert('นำเข้าแล้ว')}catch(err){alert('นำเข้าไม่ได้: '+err.message)}};
+}
+
+function render(){
+  $('tabs').innerHTML=TABS.map(([k,l])=>`<button class="${k===tab?'on':''}" data-tab="${k}">${esc(l)}</button>`).join('');
+  tab==='tasks'?renderTasks():tab==='data'?renderData():renderForm(tab);
+}
+$('tabs').onclick=e=>{if(e.target.dataset.tab){tab=e.target.dataset.tab;render()}};
+render();
+
+// self-check of the threshold logic
+console.assert(outOfRange(N('x','',null,90),91)&&!outOfRange(N('x','',null,90),90),'max check');
+console.assert(outOfRange(N('x','',0.85,1),0.8)&&!outOfRange(N('x','',0.85,1),''),'min/blank check');
+console.assert(shiftDate(new Date(2026,10,18,3))==='2026-11-17'&&shiftDate(new Date(2026,10,18,21))==='2026-11-18','shift date');
+</script>
+</body>
+</html>
