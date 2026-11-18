@@ -45,6 +45,8 @@ details.card>summary{cursor:pointer;font-weight:600;font-size:15px;min-height:28
 .bad{border-color:var(--ng)!important;background:var(--ngbg)!important;color:var(--ng)}
 .chk{display:flex;gap:10px;align-items:flex-start;padding:10px 0;min-height:44px;font-size:14px;cursor:pointer}
 .chk input{min-height:auto;width:24px;height:24px;margin:0;flex:none}
+.chk input:disabled{opacity:1;cursor:default}
+.chk:has(input:disabled){cursor:default}
 textarea{width:100%;min-height:60px;margin-top:6px}
 .sum{font-weight:600;margin:6px 0 10px}
 .sum.bad{padding:8px;border-radius:8px}
@@ -175,7 +177,9 @@ function renderTasks(){
   const day=new Date($('date').value+'T12:00').getDay(), list=TASKS[day], r=rec('tasks');
   const formDone=k=>!!db.rec[k+'|'+$('date').value]?._done;
   list.forEach((t,i)=>{const ks=linksOf(t.name);
-    if(ks.length&&ks.every(formDone)&&!r['t'+i]){r['t'+i]=true;t.checks.forEach((_,j)=>r['t'+i+'c'+j]=true);touch(r)}});
+    if(ks.length&&ks.every(formDone)&&!r['t'+i]){r['t'+i]=true;t.checks.forEach((_,j)=>r['t'+i+'c'+j]=true);touch(r)}
+    // A task with sub-checks is done only when every sub-check is ticked; its own checkbox is read-only.
+    if(t.checks.length){const all=t.checks.every((_,j)=>r['t'+i+'c'+j]);if(!!r['t'+i]!==all){r['t'+i]=all;save()}}});
   const done=list.filter((_,i)=>r['t'+i]).length;
   // A task with no time (e.g. "Check WWTP zone 2" header) takes the slot of the next timed task, so it stays with its sub-rows.
   const slots=list.map(t=>slotOf(t.time));
@@ -188,7 +192,7 @@ function renderTasks(){
     // Finished slots collapse so the open ones are what is left to do.
     h+=`<details class="card" ${d<idx.length?'open':''}><summary>${esc(name)} <span class="warn">${d}/${idx.length}</span></summary>`;
     for(const i of idx){const t=list[i];
-      h+=`<div class="${t.sub?'sub':''}"><label class="chk"><input type="checkbox" data-id="t${i}" ${r['t'+i]?'checked':''}><span><b>${esc(t.name)}</b><br><span class="meta">${esc(t.time)} ${t.freq?'· '+esc(t.freq):''}</span></span></label>`;
+      h+=`<div class="${t.sub?'sub':''}"><label class="chk"><input type="checkbox" data-id="t${i}" ${r['t'+i]?'checked':''} ${t.checks.length?'disabled title="ติ๊กหัวข้อย่อยให้ครบ"':''}><span><b>${esc(t.name)}</b><br><span class="meta">${esc(t.time)} ${t.freq?'· '+esc(t.freq):''}</span></span></label>`;
       const ks=linksOf(t.name);
       if(ks.length)h+=`<div class="links">${ks.map(k=>`<button data-open="${k}" class="${formDone(k)?'done':''}">${formDone(k)?'✓ ':''}เปิดฟอร์ม ${esc(FORMS[k][0])} →</button>`).join('')}</div>`;
       t.checks.forEach((c,j)=>h+=`<label class="chk sub"><input type="checkbox" data-id="t${i}c${j}" ${r['t'+i+'c'+j]?'checked':''}>${esc(c)}</label>`);
