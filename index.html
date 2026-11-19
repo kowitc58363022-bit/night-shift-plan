@@ -229,6 +229,13 @@ table.xl.compact{width:100%;table-layout:fixed}
 .xl.compact .ckl.on .bx{background:var(--okdot);border-color:var(--okdot);color:var(--card)}
 .xl.compact .rm2{width:100%;min-height:36px;font-size:13px;padding:4px 8px;margin-top:4px}
 .xl.compact td.sheetcell button{width:100%;justify-content:flex-start}
+/* Slot tabs: the shift in four parts; amber = shown, green = all ticked, outline = the part for the current hour. */
+.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s1);margin:0 0 var(--s3);position:sticky;top:60px;z-index:4;background:var(--bg);padding:var(--s1) 0}
+.slots button{display:flex;flex-direction:column;align-items:center;padding:6px 2px;min-height:56px;font-size:12px;line-height:1.3;border-radius:var(--r);background:var(--raise)}
+.slots button b{font-family:var(--mono);font-size:14px}
+.slots button.done{background:var(--okbg);color:var(--ok);border-color:transparent}
+.slots button.now{border:2px solid var(--acc)}
+.slots button.on{background:var(--acc);color:var(--on-acc);border-color:var(--acc)}
 .legend{display:flex;gap:var(--s3);flex-wrap:wrap;font-size:var(--t-sm);color:var(--mute);margin:0 0 var(--s3)}
 </style>
 </head>
@@ -275,6 +282,9 @@ const ICONS=[[/lighting|outdoor light/i,'ti-bulb','bulb'],[/sub-station|mobile g
 const iconHtml=name=>{const [,ic,k]=ICONS.find(([re])=>re.test(name))||[,'ti-checklist',''];return `<span class="ico" style="${k?'--ic:var(--i-'+k+')':''}"><i class="ti ${ic}" aria-hidden="true"></i></span>`};
 const cleanName=n=>n.replace(/^-\s*/,'');
 // Time-slot groups for tonight's tasks, in shift order.
+// Short labels for the slot tabs at the top of the checklist.
+const SLOT_T=['20–21','21–05','05–07','07–08'],SLOT_N=['เริ่มกะ','งานหลัก','ช่วงเช้า','ก่อนเลิก'];
+let slotSel=null; // slot shown on the checklist; null = pick the current one
 const SLOTS=['20:00–21:00 เริ่มกะ','21:00–05:00 งานหลัก','05:00–07:00','07:00–08:00 ก่อนเลิกกะ'];
 // Tasks whose result is recorded in a form tab: matched by task name. A task auto-checks when all its forms are confirmed.
 const LINKS=[[/Lighting Office/i,['light']],[/Sub-station/i,['sub1','sub2']],[/auto drain/i,['adrain']]];
@@ -297,7 +307,7 @@ const pad=n=>String(n).padStart(2,'0'), iso=d=>d.getFullYear()+'-'+pad(d.getMont
 const shiftDate=(now=new Date())=>{const d=new Date(now);if(d.getHours()<8)d.setDate(d.getDate()-1);return iso(d)};
 let tab='tasks',grpIdx={};
 $('date').value=shiftDate();
-$('date').onchange=render;
+$('date').onchange=()=>{slotSel=null;render()};
 
 // Theme support (dark default, persists in localStorage)
 const getTheme=()=>localStorage.getItem('nsp_theme')||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');
@@ -475,15 +485,20 @@ function renderTasks(){
   const narrow=innerWidth<640; // phones: 2-column layout that fits the screen
   const W=Math.max(1,...list.map(t=>t.checks.length)), ng=Object.keys(FORMS).reduce((n,k)=>n+formState(k).bad,0);
   const doneBy=(t,i)=>[...new Set((t.checks.length?t.checks.map((_,j)=>r['t'+i+'c'+j]&&who['t'+i+'c'+j]):[r['t'+i]&&who['t'+i]]).filter(Boolean))].join(', ');
+  // One time slot per page. Default: the slot for the current hour, else the first with unticked work.
+  const per=SLOTS.map((_,s)=>list.map((_,i)=>i).filter(i=>slots[i]===s));
+  if(slotSel==null||!per[slotSel].length){const c=nowSlot>=0&&per[nowSlot].length?nowSlot:per.findIndex(ix=>ix.some(i=>!r['t'+i]));slotSel=c<0?per.findIndex(ix=>ix.length):c}
+  const nextSlot=per.findIndex((ix,s)=>s>slotSel&&ix.length);
+  const tabsHtml=`<div class="slots" role="tablist">${per.map((ix,s)=>{if(!ix.length)return '';const d=ix.filter(i=>r['t'+i]).length;
+    return `<button role="tab" data-slot="${s}" aria-selected="${s===slotSel}" class="${s===slotSel?'on':d===ix.length?'done':''} ${s===nowSlot?'now':''}"><b>${SLOT_T[s]}</b><span>${SLOT_N[s]}${s===nowSlot?' •':''}</span><span>${d===ix.length?'✓ ':''}${d}/${ix.length}</span></button>`}).join('')}</div>`;
   let h=`<div class="sum">Check sheet night · ${DAYS_TH[day]} <span class="chip">${done}/${list.length}</span>
     <div class="prog" role="progressbar" aria-valuemin="0" aria-valuemax="${list.length}" aria-valuenow="${done}"><i style="width:${list.length?done/list.length*100:0}%"></i></div>
     ${ng?`<span class="warn" style="color:var(--ng);font-weight:600"><i class="ti ti-alert-triangle" aria-hidden="true"></i> ผิดปกติ ${ng} จุดในเช็คชีท</span>`:''}</div>
-  ${narrow?`<div class="xl-wrap fit" id="xlw"><table class="xl compact"><colgroup><col class="c1"><col></colgroup><thead><tr><th class="c-name">Maintenance check theme</th><th>Check theme / Remark</th></tr></thead><tbody>`
+  ${tabsHtml}${narrow?`<div class="xl-wrap fit" id="xlw"><table class="xl compact"><colgroup><col class="c1"><col></colgroup><thead><tr><th class="c-name">Maintenance check theme</th><th>Check theme / Remark</th></tr></thead><tbody>`
   :`<div class="xl-wrap" id="xlw"><table class="xl"><thead><tr><th class="c-name">Maintenance check theme</th><th>Time</th><th>Periodical</th>${Array.from({length:W},(_,j)=>`<th>Check theme ${j+1}</th>`).join('')}<th>Remark</th></tr></thead><tbody>`}`;
   SLOTS.forEach((name,s)=>{
-    const idx=list.map((_,i)=>i).filter(i=>slots[i]===s);if(!idx.length)return;
+    const idx=per[s];if(!idx.length||s!==slotSel)return;
     const d=idx.filter(i=>r['t'+i]).length;
-    h+=`<tr class="slot ${s===nowSlot?'now':''}"><th class="c-name">${esc(name)}${s===nowSlot?' · ตอนนี้':''}</th><td colspan="${narrow?1:W+3}">${d}/${idx.length}</td></tr>`;
     for(const i of idx){const t=list[i],ks=linksOf(t.name),by=doneBy(t,i);
       if(narrow){const ids=t.checks.length?t.checks.map((c,j)=>['t'+i+'c'+j,c]):[['t'+i,'ทำแล้ว']];
         h+=`<tr id="task${i}"><th class="c-name ${r['t'+i]?'done':''}">${r['t'+i]?'✓ ':''}${esc(t.name)}<small class="mono">${esc(t.time||'')}</small>${t.freq?`<small>${esc(t.freq)}</small>`:''}${by?`<small>โดย ${esc(by)}</small>`:''}</th><td${ks.length?' class="sheetcell"':''}>`;
@@ -505,7 +520,7 @@ function renderTasks(){
   h+=`</tbody></table></div>
   <div class="card"><h3>หมายเหตุกะ</h3><textarea data-id="_note" placeholder="บันทึกภาพรวมของกะนี้">${esc(r._note||'')}</textarea>
   <div class="saved">${esc(pendLabel('tasks'))}</div></div>
-  <div class="bar"><button id="confirm" class="primary">ยืนยันจบกะ</button><div id="status" class="saved"></div></div>`;
+  <div class="bar">${nextSlot>=0?`<button id="nextslot" class="primary">ถัดไป: ${esc(SLOTS[nextSlot])} →</button><button id="confirm" class="link" style="width:100%;min-height:44px">ยืนยันจบกะ</button>`:`<button id="confirm" class="primary">ยืนยันจบกะ</button>`}<div id="status" class="saved"></div></div>`;
   // Keep the grid where it was (both directions) when it redraws after a tick.
   const old=$('xlw'),sl=old?.scrollLeft||0,st=old?.scrollTop||0;
   $('view').innerHTML=h;$('xlw').scrollLeft=sl;$('xlw').scrollTop=st;if(!narrow)axisLock($('xlw'));
@@ -513,6 +528,8 @@ function renderTasks(){
   $('view').onclick=e=>{
     const b=e.target.closest('[data-open]');if(b){returnTo='tasks';tab=b.dataset.open;render();scrollTo(0,0);return}
     const c=e.target.closest('[data-ck]');if(c)return tick(c.dataset.ck);
+    const sb=e.target.closest('[data-slot]');if(sb){slotSel=+sb.dataset.slot;$('xlw').scrollTop=0;$('xlw').scrollLeft=0;renderTasks();scrollTo(0,0);return}
+    if(e.target.id==='nextslot'){slotSel=nextSlot;$('xlw').scrollTop=0;renderTasks();scrollTo({top:0,behavior:motion()});return}
     if(e.target.id==='confirm')confirmSend('tasks',renderTasks,done<list.length?['งานยังไม่ติ๊ก '+(list.length-done)+' ข้อ']:[])};
   $('view').onkeydown=e=>{const c=e.target.closest?.('[data-ck]');if(c&&(e.key==='Enter'||e.key===' ')){e.preventDefault();tick(c.dataset.ck)}};
   $('view').onchange=e=>{const t=e.target;if(t.dataset.id)put('tasks',t.dataset.id,t.value)};
