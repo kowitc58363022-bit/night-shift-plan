@@ -4,62 +4,228 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Night Shift Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f5f6f8;--card:#fff;--fg:#1d2330;--mute:#6b7280;--line:#e2e5ea;--ok:#15803d;--okbg:#dcfce7;--ng:#b91c1c;--ngbg:#fee2e2;--acc:#1d4ed8}
-@media (prefers-color-scheme:dark){:root{--bg:#111418;--card:#1b1f26;--fg:#e8eaee;--mute:#9aa3af;--line:#2c323c;--ok:#4ade80;--okbg:#14301f;--ng:#f87171;--ngbg:#3a1717;--acc:#7aa2ff}}
+/* Direction "Night round": calm, instrument-precise. Dark is the default look (shift is 20:00-08:00); light for daytime.
+   Colour logic: amber = the one action / where you are now; green = checked normal; red = abnormal; everything else neutral.
+   Type: system sans for Thai text, IBM Plex Mono for readings, times and counts. Scale 13/16/20/28. Space on a 4px grid.
+   Contrast (WCAG): fg/card 14:1, mute/card 7.1:1 dark, 7.6:1 light; on-acc/acc 11:1; ok, ng ink on their tints >= 4.8:1. */
+:root, [data-theme="dark"]{
+ --bg:#0d1117;--card:#161b22;--raise:#1f2630;--fg:#e6edf3;--mute:#9da7b3;--line:#2b333d;--track:#2b333d;
+ --acc:#f5b301;--on-acc:#1a1300;--acc-ink:#fcd34d;
+ --ok:#7ee787;--okbg:#12261a;--okdot:#3fb950;--ng:#ffa198;--ngbg:#2d1214;--ngdot:#f85149;
+ --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--r:10px;--r-lg:14px;
+ --t-sm:13px;--t-md:16px;--t-lg:20px;--t-xl:28px;
+ --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;--dur:180ms;
+ color-scheme:dark}
+@media (prefers-color-scheme:light){
+ :root:not([data-theme="dark"]){
+  --bg:#eef0f3;--card:#fff;--raise:#f6f7f9;--fg:#111418;--mute:#4b5563;--line:#d5d9df;--track:#e1e4e8;
+  --acc-ink:#8a5a00;--ok:#1a7f37;--okbg:#dafbe1;--okdot:#1a7f37;--ng:#a40e26;--ngbg:#ffebe9;--ngdot:#cf222e;color-scheme:light}}
+[data-theme="light"]{
+ --bg:#eef0f3;--card:#fff;--raise:#f6f7f9;--fg:#111418;--mute:#4b5563;--line:#d5d9df;--track:#e1e4e8;
+ --acc-ink:#8a5a00;--ok:#1a7f37;--okbg:#dafbe1;--okdot:#1a7f37;--ng:#a40e26;--ngbg:#ffebe9;--ngdot:#cf222e;color-scheme:light}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,"Segoe UI",Tahoma,sans-serif}
-header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:8px 16px}
-header .row{display:flex;gap:8px;align-items:center;max-width:760px;margin:0 auto}
-header label{display:flex;align-items:center;gap:6px}
-#who{flex:1;text-align:right;font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-input,select,textarea{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;min-height:44px}
-nav{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin:8px auto 0;max-width:760px}
+body{margin:0;background:var(--bg);color:var(--fg);font:var(--t-md)/1.5 system-ui,"Segoe UI","Leelawadee UI",Tahoma,sans-serif}
+.mono,input[type=date],input[type=number],#sync{font-family:var(--mono);font-variant-numeric:tabular-nums}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:var(--s2) var(--s4)}
+header:has(#hrow[hidden]){display:none}
+header .row{display:flex;gap:var(--s2);align-items:center;max-width:760px;margin:0 auto}
+header label{display:flex;align-items:center;gap:var(--s2)}
+.theme-btn{background:none;border:1px solid var(--line);border-radius:var(--r);color:var(--fg);padding:0 var(--s2);min-height:36px;cursor:pointer;font-size:var(--t-sm);display:inline-flex;align-items:center;gap:4px}
+.theme-btn:hover{border-color:var(--mute)}
+#who{flex:1;text-align:right;font-weight:600;font-size:var(--t-md);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#sync{font-size:var(--t-sm);color:var(--mute)}
+input,select,textarea{font:inherit;color:inherit;background:var(--raise);border:1px solid var(--line);border-radius:var(--r);padding:var(--s2);min-height:44px;transition:border-color var(--dur)}
+input:hover,select:hover,textarea:hover{border-color:var(--mute)}
+nav{display:grid;grid-template-columns:repeat(6,1fr);gap:var(--s1);margin:var(--s2) auto 0;max-width:760px}
 nav:empty{display:none}
-nav button{padding:8px 2px;font-size:14px;white-space:nowrap}
-button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:8px;padding:8px 12px;min-height:44px;cursor:pointer}
-button.on,button.primary{background:var(--acc);border-color:var(--acc);color:#fff}
-button.primary{font-weight:600;width:100%}
-button.primary:disabled{opacity:.6}
-main{max-width:760px;margin:0 auto;padding:12px 16px 24px}
-.bar{position:sticky;bottom:0;z-index:4;background:var(--bg);padding:8px 0 calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
-.bar .saved{text-align:center;margin-top:4px}
-details.card>summary{cursor:pointer;font-weight:600;font-size:15px;min-height:28px;list-style-position:inside}
-.warn{color:var(--mute);font-weight:400;font-size:14px}
-.links{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px 34px}
-.links button{color:var(--acc);border-color:var(--acc);font-size:14px}
-.links button.done{color:var(--ok);border-color:var(--ok);background:var(--okbg)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
-.card h3{margin:0 0 4px;font-size:15px}
-.meta{color:var(--mute);font-size:13px}
-.sub{margin-left:18px}
-.f{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+nav button{padding:var(--s2) 2px;font-size:var(--t-sm);white-space:nowrap;background:none;border-color:transparent;color:var(--mute)}
+nav button:hover{color:var(--fg);background:var(--raise)}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:var(--r);padding:var(--s2) var(--s3);min-height:44px;cursor:pointer;transition:background var(--dur),border-color var(--dur),color var(--dur),transform var(--dur)}
+button:hover{border-color:var(--mute)}
+button:active:not(:disabled){transform:scale(0.98)}
+button:disabled{opacity:0.45;cursor:not-allowed;pointer-events:none;filter:grayscale(0.6)}
+nav button.on{background:var(--raise);color:var(--fg);border-color:var(--line);box-shadow:inset 0 -3px 0 var(--acc)}
+button.primary{width:100%;font-weight:600;font-size:var(--t-md);background:var(--acc);border-color:var(--acc);color:var(--on-acc);min-height:52px;border-radius:var(--r-lg)}
+button.primary:hover{filter:brightness(1.06)}
+main{max-width:760px;margin:0 auto;padding:var(--s3) var(--s4) var(--s5)}
+.bar{position:sticky;bottom:0;z-index:4;background:var(--bg);padding:var(--s2) 0 calc(var(--s2) + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+.bar .saved{text-align:center;margin-top:var(--s1)}
+.warn{color:var(--mute);font-weight:400;font-size:var(--t-sm)}
+.meta{color:var(--mute);font-size:var(--t-sm)}
+.saved{color:var(--mute);font-size:var(--t-sm)}
+.sub{margin-left:var(--s5)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:var(--s3) var(--s4);margin-bottom:var(--s3)}
+.card h3{margin:0 0 var(--s1);font-size:var(--t-md);font-weight:600}
+.sum{font-weight:600;font-size:var(--t-lg);margin:var(--s2) 0 var(--s3)}
+.sum.bad{padding:var(--s3);border-radius:var(--r);background:var(--ngbg);color:var(--ng);font-size:var(--t-md)}
+.sum .warn{display:block;margin-top:var(--s1)}
+/* Signature 1: the route. Each time slot is a stop on one vertical line; amber ring = the stop for the current time. */
+.route{position:relative;padding-left:var(--s6)}
+.route::before{content:"";position:absolute;left:11px;top:var(--s4);bottom:var(--s4);width:2px;background:var(--line)}
+details.stop{position:relative}
+details.stop>summary{display:flex;align-items:center;gap:var(--s2);list-style:none;cursor:pointer;min-height:44px;font-weight:600;font-size:var(--t-md)}
+details.stop>summary::-webkit-details-marker{display:none}
+details.stop>summary::before{content:"";position:absolute;left:-30px;top:var(--s4);width:20px;height:20px;border-radius:50%;background:var(--bg);border:2px solid var(--mute);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--bg)}
+details.stop.done>summary::before{content:"✓";background:var(--okdot);border-color:var(--okdot)}
+details.stop.now>summary::before{border-color:var(--acc);box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 30%,transparent)}
+details.stop.now{border-color:color-mix(in srgb,var(--acc) 55%,var(--line))}
+.now-tag{font-size:var(--t-sm);font-weight:600;color:var(--acc-ink)}
+.links{display:flex;gap:var(--s2);flex-wrap:wrap;margin:0 0 var(--s2) 34px}
+.links button{color:var(--acc-ink);border-color:currentColor;font-size:var(--t-sm);background:none}
+.links button.done{color:var(--ok);background:var(--okbg);border-color:transparent}
+.links button.bad{color:var(--ng);background:var(--ngbg);border-color:transparent}
+.chk{display:flex;gap:var(--s3);align-items:flex-start;padding:var(--s3) 0;min-height:44px;font-size:var(--t-md);cursor:pointer}
+.chk input{min-height:auto;width:24px;height:24px;margin:0;flex:none;accent-color:var(--okdot)}
+.chk:has(input[data-ro]){cursor:default}
+.badge-ro{display:inline-block;font-size:11px;font-weight:500;padding:1px 6px;border-radius:4px;background:var(--raise);border:1px solid var(--line);color:var(--mute);margin-left:6px;vertical-align:middle}
+/* Signature 2: status LEDs. Every field row starts with a light: green normal, red abnormal, hollow not yet checked. */
+.led{flex:none;width:10px;height:10px;border-radius:50%;border:2px solid var(--mute);box-sizing:border-box}
+.led.ok{background:var(--okdot);border-color:var(--okdot)}
+.led.ng{background:var(--ngdot);border-color:var(--ngdot);box-shadow:0 0 0 3px color-mix(in srgb,var(--ngdot) 25%,transparent)}
+.f{display:flex;justify-content:space-between;align-items:center;gap:var(--s3);padding:var(--s3) 0;border-top:1px solid var(--line)}
 .f:first-of-type{border-top:0}
-.f label{flex:1;font-size:14px}
-.f small{display:block;color:var(--mute)}
-.f input[type=number],.f input[type=text]{width:120px;text-align:right}
-.tog{min-width:72px;font-weight:600}
-.tog.g{background:var(--okbg);color:var(--ok);border-color:var(--ok)}
-.tog.ng{background:var(--ngbg);color:var(--ng);border-color:var(--ng)}
-.bad{border-color:var(--ng)!important;background:var(--ngbg)!important;color:var(--ng)}
-.chk{display:flex;gap:10px;align-items:flex-start;padding:10px 0;min-height:44px;font-size:14px;cursor:pointer}
-.chk input{min-height:auto;width:24px;height:24px;margin:0;flex:none}
-.chk input:disabled{opacity:1;cursor:default}
-.chk:has(input:disabled){cursor:default}
-textarea{width:100%;min-height:60px;margin-top:6px}
-.sum{font-weight:600;margin:6px 0 10px}
-.sum.bad{padding:8px;border-radius:8px}
-.saved{color:var(--mute);font-size:12px}
+.f label{flex:1;font-size:var(--t-md)}
+.f small{display:block;color:var(--mute);font-size:var(--t-sm)}
+.f small.hint{color:var(--ng);font-weight:600}
+.f input[type=number],.f input[type=text]{width:120px;text-align:right;font-size:var(--t-lg)}
+.f.flash{outline:2px solid var(--acc);outline-offset:2px;border-radius:var(--r)}
+/* G/NG Segmented control: joined with 3px buffer */
+.seg{display:flex;gap:3px;flex:none;width:140px;border:1px solid var(--line);border-radius:var(--r);padding:2px;background:var(--raise)}
+.tog{flex:1;border:0;border-radius:calc(var(--r) - 2px);min-height:42px;padding:0;font-weight:600;color:var(--fg);background:none;transition:background var(--dur),color var(--dur)}
+.tog:hover{background:var(--card)}
+.tog.g{background:var(--okbg);color:var(--ok)}
+.tog.ng{background:var(--ngbg);color:var(--ng)}
+/* Sel Segmented button groups (Single-tap alternatives to select dropdowns) */
+.seg-sel{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.seg-sel .tog{padding:0 var(--s3);min-height:42px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);font-size:var(--t-sm);color:var(--mute)}
+.seg-sel .tog.on{font-weight:700}
+.seg-sel .tog.on.ok{background:var(--okbg);border-color:var(--okdot);color:var(--ok)}
+.seg-sel .tog.on.bad{background:var(--ngbg);border-color:var(--ngdot);color:var(--ng)}
+details.grp{scroll-margin-top:130px}
+details.grp>summary{display:flex;align-items:center;gap:var(--s2);list-style:none;font-size:var(--t-md);font-weight:600;min-height:44px;cursor:pointer}
+details.grp>summary::-webkit-details-marker{display:none}
+details.grp>summary::before{content:"›";display:inline-block;width:12px;color:var(--mute);transition:transform var(--dur)}
+details.grp[open]>summary::before{transform:rotate(90deg)}
+.gt{flex:1}
+.chip{font-family:var(--mono);font-size:var(--t-sm);font-weight:500;padding:2px 10px;border-radius:999px;background:var(--raise);color:var(--fg);white-space:nowrap;border:1px solid var(--line)}
+.chip.ok{background:var(--okbg);color:var(--ok);border-color:transparent}
+.chip.ng{background:var(--ngbg);color:var(--ng);border-color:transparent}
+.gtools{display:flex;justify-content:space-between;align-items:center;gap:var(--s2);margin:4px 0 var(--s2)}
+.allg{font-size:var(--t-sm);color:var(--ok);border-color:currentColor;background:none;white-space:nowrap;min-height:38px}
+.barrow{display:flex;justify-content:space-between;align-items:center;gap:var(--s2);margin-bottom:var(--s2)}
+button.link{border:0;background:none;color:var(--acc-ink);padding:0 var(--s1);font-size:var(--t-sm);min-height:36px}
+/* Round rail */
+.rail{display:flex;gap:3px;margin-bottom:var(--s1)}
+.rail button{flex:1;min-height:28px;padding:10px 0;border:0;background:none;border-radius:0}
+.rail i{display:block;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--okdot) var(--p),var(--track) var(--p))}
+.rail button.ng i{background:linear-gradient(90deg,var(--ngdot) var(--p),var(--track) var(--p))}
+.bad{border-color:var(--ngdot)!important;background:var(--ngbg)!important;color:var(--ng)}
+#menuBtn .dot{position:absolute;top:-7px;right:-7px}
+.dot{display:inline-block;min-width:18px;padding:0 var(--s1);margin-left:2px;border-radius:9px;background:#dc2626;color:#fff;font-size:12px;line-height:18px;font-family:var(--mono)}
+textarea{width:100%;min-height:72px;margin-top:var(--s2)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* Category colours for task icons */
+:root{--i-bolt:#f5b301;--i-water:#79c0ff;--i-fire:#ff7b72;--i-air:#56d4dd;--i-bulb:#e3b341}
+@media (prefers-color-scheme:light){:root{--i-bolt:#b45309;--i-water:#0969da;--i-fire:#cf222e;--i-air:#0e7490;--i-bulb:#9a6700}}
+/* Checklist header: progress for the whole night */
+.prog{height:8px;border-radius:4px;background:var(--track);overflow:hidden;margin:var(--s2) 0 var(--s1)}
+.prog i{display:block;height:100%;background:var(--okdot)}
+/* A task that has a check sheet: the whole row opens it */
+#sync{white-space:nowrap}
+#who{min-width:3em}
+@media (max-width:420px){.theme-btn .lbl{display:none}#sync:not(.off){display:none}#sync.off{font-size:0;width:12px;height:12px;flex:none;border-radius:50%;background:var(--ngdot)}#hrow{gap:6px}#hrow input[type=date]{font-size:14px;padding:6px}} /* phones: sync time shown only when offline */ /* icon only on phones; title attribute keeps the name */
+.sheet{display:flex;align-items:center;gap:var(--s3);width:100%;text-align:left;padding:var(--s3);margin:var(--s1) 0 var(--s2);background:var(--raise);border:1px solid var(--line);border-radius:var(--r-lg);cursor:pointer}
+.sheet:hover{border-color:var(--mute)}
+.sheet.ok{border-color:color-mix(in srgb,var(--okdot) 50%,var(--line))}
+.sheet.ng{border-color:color-mix(in srgb,var(--ngdot) 60%,var(--line))}
+.sheet .tx{flex:1;min-width:0}.sheet .tx b{display:block}.sheet .tx span{color:var(--mute);font-size:var(--t-sm)}
+.sheet .forms{display:flex;gap:var(--s1);flex-wrap:wrap;margin-top:var(--s2)}
+.sheet .forms button{min-height:36px;padding:0 var(--s3);border-radius:999px;font-size:var(--t-sm);background:var(--card)}
+.sheet .forms button.ok{background:var(--okbg);color:var(--ok);border-color:transparent}
+.sheet .forms button.ng{background:var(--ngbg);color:var(--ng);border-color:transparent}
+.sheet .go{flex:none;color:var(--acc-ink);font-size:var(--t-sm);font-weight:600;white-space:nowrap}
+.sect{font-size:var(--t-sm);color:var(--mute);margin:0 0 var(--s2)}
+button.row-t{display:flex;align-items:center;gap:var(--s3);width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:var(--s3);margin-bottom:var(--s2)}
+.row-t .tx{flex:1;min-width:0}.row-t .tx span{display:block;color:var(--mute);font-size:var(--t-sm)}
+.row-t.dim{opacity:.6}
+.ico{width:40px;height:40px;border-radius:var(--r);background:var(--raise);display:flex;align-items:center;justify-content:center;font-size:22px;flex:none;color:var(--ic,var(--mute))}
+.empty{text-align:center;padding:var(--s6) var(--s4);color:var(--mute)}
+.empty i{display:block;font-size:44px;color:var(--okdot);margin-bottom:var(--s2)}
+/* Form: group chips with right-edge scroll hint */
+.gchips-wrap{position:relative;margin-bottom:var(--s2)}
+.gchips-wrap::after{content:"";position:absolute;right:0;top:0;bottom:var(--s2);width:32px;background:linear-gradient(to right,transparent,var(--bg));pointer-events:none}
+.gchips{display:flex;gap:var(--s2);overflow-x:auto;padding-bottom:var(--s2);margin-bottom:0;scrollbar-width:none}
+.gchips button{white-space:nowrap;border-radius:999px;font-size:var(--t-sm);min-height:44px;padding:var(--s1) var(--s4);background:var(--raise)}
+.gchips button.ok{background:var(--okbg);color:var(--ok);border-color:transparent}
+.gchips button.ng{background:var(--ngbg);color:var(--ng);border-color:transparent}
+.gchips button.on{background:var(--acc);color:var(--on-acc);border-color:var(--acc)}
+.grp .gh{display:flex;align-items:flex-start;gap:var(--s2);min-height:44px}
+.grp .gh h3{margin:0;font-size:var(--t-lg)}
+.gstep{font-size:var(--t-sm);color:var(--mute);margin-top:2px}
+/* Login & Custom components */
+.login-box{max-width:380px;margin:28px auto 0;background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:var(--s4);box-shadow:0 4px 20px rgba(0,0,0,0.15)}
+.login-box h3{margin:0 0 var(--s1);font-size:var(--t-lg);font-weight:700}
+.login-brand{text-align:center;margin-bottom:var(--s4)}
+.login-brand .b-ico{width:56px;height:56px;margin:0 auto var(--s2);border-radius:50%;background:var(--acc);color:var(--on-acc);display:flex;align-items:center;justify-content:center;font-size:32px}
+.login-brand h2{margin:0 0 4px;font-size:22px;font-weight:700}
+.field-grp{margin:var(--s3) 0}
+.field-grp label{display:block;font-size:var(--t-sm);font-weight:600;margin-bottom:var(--s1);color:var(--fg)}
+.pin-wrap{position:relative;display:flex;align-items:center}
+.pin-wrap input{width:100%;padding-right:48px}
+.pin-eye{position:absolute;right:4px;width:38px;height:38px;border:0;background:none;color:var(--mute);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;min-height:auto}
+.btn-file{display:inline-flex;align-items:center;gap:var(--s2);padding:var(--s2) var(--s4);background:var(--raise);border:1px solid var(--line);border-radius:var(--r);cursor:pointer;font-size:var(--t-sm);font-weight:500}
+.btn-file:hover{border-color:var(--mute)}
+/* Excel layout: same rows and columns as the paper sheets; first column and header stay put while scrolling sideways. */
+.xl-wrap{overflow:auto;max-height:calc(100dvh - 200px);border:1px solid var(--line);border-radius:var(--r);background:var(--card);margin-bottom:var(--s3);-webkit-overflow-scrolling:touch}
+table.xl{border-collapse:separate;border-spacing:0;font-size:13px;line-height:1.35}
+.xl th,.xl td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:6px 8px;vertical-align:middle;text-align:left;background:var(--card);color:var(--fg)}
+.xl thead th{position:sticky;top:0;z-index:2;background:var(--raise);font-weight:600}
+.xl thead tr:nth-child(2) th{top:31px}
+.xl .c-name{position:sticky;left:0;z-index:1;min-width:150px;max-width:170px;background:var(--raise);font-weight:600}
+.xl thead .c-name{z-index:3}
+.xl small{display:block;font-weight:400;color:var(--mute);font-size:12px}
+.xl tr.slot th,.xl tr.slot td{background:var(--track);font-weight:600;position:sticky}
+.xl tr.slot.now th{box-shadow:inset 4px 0 0 var(--acc)}
+.xl td.ck{min-width:132px;max-width:180px;cursor:pointer}
+.xl td.ck .bx{display:inline-flex;width:22px;height:22px;border:1.5px solid var(--mute);border-radius:5px;align-items:center;justify-content:center;margin-right:6px;vertical-align:-5px;font-weight:700}
+.xl td.ck.on{background:var(--okbg);color:var(--ok)}
+.xl td.ck.on .bx{background:var(--okdot);border-color:var(--okdot);color:var(--card)}
+.xl td.ck.ro{cursor:default}
+.xl td.sheetcell button{min-height:36px;margin:2px 4px 2px 0;font-size:13px;border-radius:8px}
+.xl td.sheetcell button.ok{background:var(--okbg);color:var(--ok);border-color:transparent}
+.xl td.sheetcell button.ng{background:var(--ngbg);color:var(--ng);border-color:transparent}
+.xl td.rm input{min-height:36px;width:150px;font-size:13px;padding:4px 8px}
+.xl th.done{color:var(--ok)}
+.xl.xf td.cell{min-width:52px;text-align:center;white-space:nowrap;font-family:var(--mono)}
+.xl.xf th.fh{font-size:12px;font-weight:500;min-width:58px;max-width:96px;white-space:normal;text-align:center}
+.xl.xf th.gh{text-align:center}
+.xl.xf th.day{text-align:center;min-width:44px;font-family:var(--mono)}
+.xl.xf th.day.today{background:var(--acc);color:var(--on-acc)}
+.xl.xf td.today{background:color-mix(in srgb,var(--acc) 14%,var(--card))}
+.xl.xf tr.today-row th.c-name{background:var(--acc);color:var(--on-acc)}
+.xl.xf td.tap{cursor:pointer;font-weight:700;min-height:40px;height:40px}
+.xl.xf td.tap:empty::after{content:"·";color:var(--mute)}
+.xl.xf td.cell.bad{background:var(--ngbg);color:var(--ng)}
+.xl.xf td.cell input{width:76px;min-height:34px;padding:2px 6px;font-size:14px;text-align:right}
+.xl.xf td.who{font-family:inherit;font-size:12px;color:var(--mute)}
+.xl.xf td.flash{outline:2px solid var(--acc);outline-offset:-2px}
+.legend{display:flex;gap:var(--s3);flex-wrap:wrap;font-size:var(--t-sm);color:var(--mute);margin:0 0 var(--s3)}
 </style>
 </head>
 <body>
 <header>
   <div class="row" id="hrow">
     <label class="meta">กะ <input type="date" id="date"></label>
-    <span id="who"></span>
+    <button id="themeToggle" class="theme-btn" title="สลับโหมด มืด/สว่าง" aria-label="สลับโหมด มืด/สว่าง">🌙</button>
+    <span id="who"></span><span id="sync" class="meta"></span>
+    <button id="menuBtn" class="theme-btn" aria-label="บัญชีและข้อมูล" style="position:relative"><i class="ti ti-user" aria-hidden="true"></i><span id="pending"></span></button>
   </div>
-  <nav id="tabs"></nav>
 </header>
 <main id="view"></main>
 
@@ -74,7 +240,9 @@ const subForm=lamps=>[
  {title:'AVR / REF / Metering',f:[N('avr','AVR Actual (kV) 19.8-24.2',19.8,24.2),G('r501','REF501 green light'),G('r502','REF502 green light'),N('tap','Tap PS02 Position'),N('v','Voltage'),N('a','Current (Amp)'),N('kw','Power (kW)'),N('pf','PF ≥ 0.85',0.85,1)]},
  {title:'Annunciator / Lamp',f:[G('ann','Annunciator'),...lamps.map((l,i)=>G('lamp'+i,l))]},
  {title:'Selector switch status',f:[S('trd','TR diff cut off SW',['OFF','ON']),S('ref','87 REF cut off',['OFF','ON']),S('avrm','AVR',['AUTO','MANUAL']),S('lr','Lower raise SW',['0','1','2']),G('ied','IED/PNL PLN control'),G('emg','Emergency SW (Open)')]},
- ...['J01','J02','J03','J04'].map((j,i)=>({title:j,f:[...(i==0?[G(j+'fuse','Fuse Blown (Not show)')]:[]),G(j+'sep','Sepam (Not Alarm)'),G(j+'arc','Arc detector (Not Alarm)'),...(i==0?[N(j+'v','Voltage (V)')]:[]),N(j+'a','Current (Amp)'),N(j+'kw','Power (kW)'),S(j+'sel','Selector SW',['Remote','0'])]})),
+ // Layout follows the Excel sheet: J01 has only the fuse lamp; J02 also meters Voltage; each of J02-J04 has 2 selector switches.
+ {title:'J01',f:[G('J01fuse','Fuse Blown (Not show)')]},
+ ...['J02','J03','J04'].map(j=>({title:j,f:[G(j+'sep','Sepam (Not Alarm)'),G(j+'arc','Arc detector (Not Alarm)'),...(j==='J02'?[N(j+'v','Voltage (V)')]:[]),N(j+'a','Current (Amp)'),N(j+'kw','Power (kW)'),S(j+'s1','Selector SW 1 (O)',['0','1','2']),S(j+'s2','Selector SW 2 (Remote)',['Remote','Local'])]})),
  {title:'Station',f:[G('swalk','Walk around (สภาพโดยรวม/มด)')]}
 ];
 const SUB1=subForm(['S86T.1 Reset K68T1','S86T.2 Reset K68T2','Lamp test','H87T 87REF cut off','H90 AVR local','HDS CB local','HCB DC local']);
@@ -85,8 +253,13 @@ const ADRAIN=[['CACS1',['ACP-CS1-1','ACP-CS1-2','ACP-CS1-3','ACP-CS1-4','ACP-CS1
  .map(([area,ms])=>({title:area,f:ms.map(m=>S(m,m,['ปกติ','ผิดปกติ','ไม่เปิดใช้']))}));
 const LIGHT=[{title:'Lighting Office (ไฟไม่สว่าง = NG แล้วเปลี่ยนหลอดโดยด่วน)',f:['Office Room','Meeting Room1','Meeting Room2','Conf.1','Conf.2','CPU.Room','Recept Europe','Recept Thai','Recept 3','Recept 4','M.D. Room','D.M.D.Room'].map(r=>G(r,r))}];
 const FORMS={sub1:['Sub 1',SUB1],sub2:['Sub 2',SUB2],adrain:['Auto drain',ADRAIN],light:['Light',LIGHT]};
-const TABS=[['tasks','งานคืนนี้'],...Object.entries(FORMS).map(([k,v])=>[k,v[0]]),['data','ข้อมูล']];
-const SHORT={tasks:'คืนนี้',sub1:'Sub1',sub2:'Sub2',adrain:'Drain',light:'ไฟ',data:'ข้อมูล'}; // fits 6 tabs in one row at 375px
+const FORM_LIST=[['tasks','งานคืนนี้'],...Object.entries(FORMS).map(([k,v])=>[k,v[0]])];
+// Task icon + colour by what the task is about (matched on the task name).
+const ICONS=[[/lighting|outdoor light/i,'ti-bulb','bulb'],[/sub-station|mobile gen/i,'ti-bolt','bolt'],[/fire/i,'ti-flame','fire'],
+ [/door/i,'ti-door',''],[/toilet/i,'ti-bath','water'],[/wwtp|ตู้กดน้ำ|pump/i,'ti-droplet','water'],
+ [/air|compressor|dryer|drain|filter|oac|domnick|tank/i,'ti-wind','air'],[/ยุง|มด/i,'ti-bug',''],[/แบต/i,'ti-battery-charging','bolt'],[/งานฝาก|jobs/i,'ti-clipboard-list','']];
+const iconHtml=name=>{const [,ic,k]=ICONS.find(([re])=>re.test(name))||[,'ti-checklist',''];return `<span class="ico" style="${k?'--ic:var(--i-'+k+')':''}"><i class="ti ${ic}" aria-hidden="true"></i></span>`};
+const cleanName=n=>n.replace(/^-\s*/,'');
 // Time-slot groups for tonight's tasks, in shift order.
 const SLOTS=['20:00–21:00 เริ่มกะ','21:00–05:00 งานหลัก','05:00–07:00','07:00–08:00 ก่อนเลิกกะ'];
 // Tasks whose result is recorded in a form tab: matched by task name. A task auto-checks when all its forms are confirmed.
@@ -95,117 +268,218 @@ const linksOf=name=>(LINKS.find(([re])=>re.test(name))||[,[]])[1];
 let returnTo=null; // set when a form is opened from a task, so confirming it goes back to the task list
 const slotOf=time=>{const h=parseInt((time.match(/\d{1,2}/)||[])[0]);return isNaN(h)?-1:h>=19&&h<21?0:h>=21||h<5?1:h<7?2:3};
 
-// shortcut: data lives only in this browser's localStorage; upgrade to a shared backend when several people/devices must see the same records.
+// db.rec = local copy of every form/date; db.q = changes not yet saved to the Sheet.
 let db; try{db=JSON.parse(localStorage.getItem('nsp'))||{}}catch(e){db={}}
-db.rec=db.rec||{};
-const save=()=>{try{localStorage.setItem('nsp',JSON.stringify(db))}catch(e){alert('บันทึกไม่ได้: '+e.message)}};
-// Apps Script web app (google-apps-script/Code.gs). Public is fine: every request needs a valid name + PIN from the users tab.
+db.rec=db.rec||{};db.q=db.q||[];
+const save=()=>{try{localStorage.setItem('nsp',JSON.stringify(db))}catch(e){alert('บันทึกไม่ได้: '+e.message)}badge()};
 const API='https://script.google.com/macros/s/AKfycbx05pyEOhgjosSItAcNvZPb2_s-KirMPiPeG8mx8H7VHVc0Di1UZRJL0BAT0UuDb5WV/exec';
 const post=async body=>{
-  // No custom headers: text/plain body avoids a CORS preflight, which Apps Script does not answer.
   const j=await (await fetch(API,{method:'POST',body:JSON.stringify({...body,name:db.user?.name,pin:db.user?.pin})})).json();
   if(!j.ok)throw Error(j.error);return j;
 };
+const motion=()=>matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth';
 const $=id=>document.getElementById(id), esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const pad=n=>String(n).padStart(2,'0'), iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
-// Shift runs 20:00-08:00, so before 08:00 we are still on the previous date's shift.
 const shiftDate=(now=new Date())=>{const d=new Date(now);if(d.getHours()<8)d.setDate(d.getDate()-1);return iso(d)};
-let tab='tasks';
+let tab='tasks',grpIdx={};
 $('date').value=shiftDate();
 $('date').onchange=render;
+
+// Theme support (dark default, persists in localStorage)
+const getTheme=()=>localStorage.getItem('nsp_theme')||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');
+const applyTheme=t=>{
+  document.documentElement.setAttribute('data-theme',t);
+  const btn=$('themeToggle');if(btn)btn.textContent=t==='light'?'☀️':'🌙';
+};
+const toggleTheme=()=>{
+  const next=getTheme()==='light'?'dark':'light';
+  localStorage.setItem('nsp_theme',next);applyTheme(next);
+};
+applyTheme(getTheme());
+
 const rec=k=>{const key=k+'|'+$('date').value;return db.rec[key]=db.rec[key]||{}};
-const touch=r=>{r._by=db.user?.name;r._at=new Date().toLocaleString('th-TH');r._sent=false;save()};
+const isTick=(form,id)=>form==='tasks'&&/^t\d/.test(id); // tasks: t* = tick, n* = remark text
+const toServer=(form,id,v)=>isTick(form,id)?(v?'✓':''):v;
+const fromServer=(form,id,v)=>isTick(form,id)?v==='✓':v;
+let flushT=null,flushing=null,curRefresh=null,lastSync=0;
+function put(form,id,v){const date=$('date').value,r=rec(form);if(r[id]===v)return;
+  r[id]=v;(r._who=r._who||{})[id]=db.user?.name;r._at=new Date().toLocaleString('th-TH');
+  db.q=db.q.filter(x=>!(x.form===form&&x.date===date&&x.id===id));db.q.push({form,date,id,v:toServer(form,id,v)});
+  save();clearTimeout(flushT);flushT=setTimeout(flush,1500)}
+const pendingOf=(form,date)=>db.q.filter(x=>x.form===form&&x.date===date);
+function applyState(date,state){for(const [form,fs] of Object.entries(state||{})){
+  const r=db.rec[form+'|'+date]=db.rec[form+'|'+date]||{},pend=new Set(pendingOf(form,date).map(x=>x.id));
+  for(const [id,{v,by}] of Object.entries(fs)){if(pend.has(id))continue;r[id]=fromServer(form,id,v);(r._who=r._who||{})[id]=by}}}
+function schemaOf(form,date){const list=TASKS[new Date(date+'T12:00').getDay()];
+  return {schema:fieldsOf(form,date).map(([l,f])=>[l,form==='tasks'?f:f.id]),
+    items:form==='tasks'?list.map((t,i)=>({time:t.time,name:t.name,freq:t.freq,id:'t'+i,checks:t.checks.map((c,j)=>[c,'t'+i+'c'+j])})):undefined}}
+function flush(){clearTimeout(flushT);if(flushing)return flushing;
+  flushing=(async()=>{let msg='';const groups={};
+    for(const x of db.q)(groups[x.form+'|'+x.date]=groups[x.form+'|'+x.date]||[]).push(x);
+    for(const [k,xs] of Object.entries(groups)){const [form,date]=k.split('|');
+      try{const j=await post({action:'save',form,date,changes:Object.fromEntries(xs.map(x=>[x.id,x.v])),...schemaOf(form,date)});
+        db.q=db.q.filter(x=>!xs.includes(x));applyState(date,j.state);if(j.warn)msg=j.warn;syncLabel(true)}
+      catch(e){msg='ยังส่งไม่ได้ เก็บไว้ในเครื่อง จะลองส่งใหม่เอง ('+e.message+')';syncLabel(false);break}}
+    save();refreshView();return msg})().finally(()=>flushing=null);
+  return flushing}
+async function sync(){if(!db.user||document.hidden)return;lastSync=Date.now();const date=$('date').value;
+  try{if(db.q.length)await flush();const j=await post({action:'get',date});
+    if(date!==$('date').value)return;applyState(date,j.state);save();refreshView();syncLabel(true)}catch(e){syncLabel(false)}}
+function syncLabel(ok){const el=$('sync');if(el){el.classList.toggle('off',!ok);el.title=ok?'ซิงก์แล้ว':'ออฟไลน์ ยังส่งไม่ได้';el.setAttribute('role','status')}if(el)el.textContent=ok?'ซิงก์ '+new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}):'ออฟไลน์'}
+function refreshView(){if(!db.user)return;badge();const typing=document.activeElement?.matches?.('textarea,input');
+  if(typing)return curRefresh&&curRefresh(true);
+  if(tab==='tasks')renderTasks();else if(FORMS[tab]&&curRefresh)curRefresh(true)}
+const whoText=names=>{const n=[...new Set(names.filter(Boolean))];return n.length?'โดย '+n.join(', '):''};
+const pendLabel=form=>{const n=pendingOf(form,$('date').value).length;return n?`ค้างส่ง ${n} ช่อง`:'บันทึกเข้า Sheet แล้ว'};
 
 function fieldsOf(key,date){
   if(key!=='tasks')return FORMS[key][1].flatMap(g=>g.f).map(f=>[f.label,f]);
   const list=TASKS[new Date(date+'T12:00').getDay()];
-  return list.flatMap((t,i)=>[[t.name,'t'+i],...t.checks.map((c,j)=>[t.name+' / '+c,'t'+i+'c'+j])]);
+  return list.flatMap((t,i)=>[[t.name,'t'+i],...t.checks.map((c,j)=>[t.name+' / '+c,'t'+i+'c'+j]),[t.name+' / Remark','n'+i]]);
 }
-async function send(key,date){
-  const r=db.rec[key+'|'+date];
-  const fields=fieldsOf(key,date).map(([label,f])=>[label,key==='tasks'?(r[f]?'✓':''):value(f,r)]);
-  try{
-    await post({form:key,date,fields,note:r._note,savedAt:r._at});
-    r._sent=true;save();return 'ส่งเข้า Google Sheet แล้ว';
-  }catch(e){return 'ส่งไม่สำเร็จ (เก็บไว้ในเครื่อง ส่งซ้ำได้ที่แท็บ ข้อมูล): '+e.message}
-}
-// warnings: things that are probably forgotten; the user can still send after confirming.
 async function confirmSend(key,rerender,warnings){
-  if(warnings.length&&!confirm(warnings.join('\n')+'\n\nส่งเลยไหม?'))return;
-  const r=rec(key);touch(r);r._done=true;save();rerender();
+  if(warnings.length&&!confirm(warnings.join('\n')+'\n\nยืนยันเลยไหม?'))return;
   $('status').textContent='กำลังส่ง...';
-  const msg=await send(key,$('date').value);
+  const msg=await flush()||'บันทึกเข้า Google Sheet แล้ว';
   if(key!=='tasks'&&returnTo){tab=returnTo;returnTo=null;render();scrollTo(0,0);$('status').textContent=FORMS[key][0]+': '+msg;return}
   rerender();$('status').textContent=msg;
 }
-const sentLabel=r=>r._at?(r._sent?' · ส่ง Sheet แล้ว':' · ยังไม่ได้ส่ง Sheet'):'';
 
 function outOfRange(f,v){if(f.t!=='num'||v===''||v==null)return false;v=+v;return (f.min!=null&&v<f.min)||(f.max!=null&&v>f.max)}
-function isBad(f,v){return f.t==='gng'?v==='NG':f.t==='sel'?(v!==undefined&&v!==f.opts[0]&&v!=='ไม่เปิดใช้'):outOfRange(f,v)}
-function value(f,r){return r[f.id]??(f.t==='gng'?'G':f.t==='sel'?f.opts[0]:'')}
+function isBad(f,v){return f.t==='gng'?v==='NG':f.t==='sel'?(v!==''&&v!==f.opts[0]&&v!=='ไม่เปิดใช้'):outOfRange(f,v)}
+function value(f,r){return r[f.id]??''}
+function prevRec(key){const d=$('date').value;const k=Object.keys(db.rec).filter(x=>x.startsWith(key+'|')&&x.split('|')[1]<d).sort().pop();return k?db.rec[k]:null}
 
+// Check sheets in their Excel layout. Sub1/Sub2: one row per day of the month (two tables, as on paper).
+// Light / Auto drain: one row per room or machine, one column per day. Only tonight's row/column is editable;
+// other days show what this device has (it syncs only the date on screen).
+const LAYOUT={sub1:'rows',sub2:'rows',light:'cols',adrain:'cols'};
+const SHORT_V={'ปกติ':'✓','ผิดปกติ':'✗','ไม่เปิดใช้':'–'};
+const showV=(f,v)=>f.t==='sel'?(SHORT_V[v]??v):v;
 function renderForm(key){
-  const [,groups]=FORMS[key], r=rec(key);
-  const all=groups.flatMap(g=>g.f);
-  const bad=all.filter(f=>isBad(f,value(f,r))), blank=all.filter(f=>f.t==='num'&&value(f,r)==='');
-  let h=`<div class="sum ${bad.length?'bad':''}">${bad.length?'ผิดปกติ '+bad.length+' จุด: '+bad.map(f=>esc(f.label)).join(', '):'ทุกจุดปกติ — แตะเปลี่ยนเฉพาะจุดที่ผิดปกติ'}
-  ${blank.length?`<div class="warn">ยังไม่กรอกค่า ${blank.length} ช่อง</div>`:''}</div>`;
-  if(returnTo)h=`<button id="back" style="margin-bottom:10px">← กลับไปรายการงาน</button>`+h;
-  for(const g of groups){
-    h+=`<div class="card"><h3>${esc(g.title)}</h3>`;
-    for(const f of g.f){const v=value(f,r),b=isBad(f,v);
-      h+=`<div class="f"><label for="f_${esc(f.id)}">${esc(f.label)}</label>`;
-      if(f.t==='gng')h+=`<button id="f_${esc(f.id)}" class="tog ${v==='NG'?'ng':'g'}" data-id="${esc(f.id)}" data-t="gng">${v}</button>`;
-      else if(f.t==='sel')h+=`<select id="f_${esc(f.id)}" data-id="${esc(f.id)}" class="${b?'bad':''}">${f.opts.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
-      else h+=`<input id="f_${esc(f.id)}" type="number" inputmode="decimal" step="any" data-id="${esc(f.id)}" value="${esc(v)}" class="${b?'bad':''}">`;
-      h+='</div>';}
-    h+='</div>';}
-  h+=`<div class="card"><h3>หมายเหตุ ${bad.length?'(ต้องกรอก เพราะมีจุดผิดปกติ)':''}</h3><textarea data-id="_note" class="${bad.length&&!r._note?'bad':''}">${esc(r._note||'')}</textarea>
-  <div class="saved">${r._at?'บันทึกล่าสุด '+esc(r._at)+' โดย '+esc(r._by||'-')+sentLabel(r):'ยังไม่ได้บันทึก'}</div></div>
-  <div class="bar"><button id="confirm" class="primary">ยืนยันผลตรวจ + ส่ง Google Sheet</button><div id="status" class="saved"></div></div>`;
+  const [title,groups]=FORMS[key],date=$('date').value,r=rec(key),all=groups.flatMap(g=>g.f);
+  const [y,m,d]=date.split('-').map(Number),dim=new Date(y,m,0).getDate(),ym=date.slice(0,7);
+  const recOf=day=>day===d?r:(db.rec[key+'|'+ym+'-'+pad(day)]||{});
+  const whoOf=(rr,fs)=>[...new Set(fs.filter(f=>value(f,rr)!=='').map(f=>rr._who?.[f.id]).filter(Boolean))].join(', ');
+  const cell=(f,day)=>{const v=value(f,recOf(day)),bad=isBad(f,v)?' bad':'';
+    if(day!==d)return `<td class="cell${bad}">${esc(showV(f,v))}</td>`;
+    if(f.t==='num')return `<td class="cell today${bad}" data-cell="${esc(f.id)}"><input type="number" inputmode="decimal" step="any" enterkeyhint="next" data-id="${esc(f.id)}" value="${esc(v)}" aria-label="${esc(f.label)}"></td>`;
+    return `<td class="cell today tap${bad}" data-cell="${esc(f.id)}" data-tap="${esc(f.id)}" role="button" tabindex="0" aria-label="${esc(f.label)}">${esc(showV(f,v))}</td>`};
+  const backTo={tasks:'Check sheet night'}[returnTo];
+  let h=backTo?`<button id="back" class="link" style="margin:0 0 var(--s2);min-height:44px"><i class="ti ti-arrow-left" aria-hidden="true"></i> ${backTo}</button>`:'';
+  h+=`<div id="sum" class="sum"></div><p class="legend"><span>แตะช่องวันนี้เพื่อเลือก: ว่าง → ${all.some(f=>f.t==='gng')?'G → NG':'✓ → ✗ → –'}</span><span>ช่องสีส้ม = วันนี้</span></p>`;
+  if(LAYOUT[key]==='rows'){
+    [groups.slice(0,4),groups.slice(4)].forEach(gs=>{const fs=gs.flatMap(g=>g.f);
+      h+=`<div class="xl-wrap"><table class="xl xf"><thead><tr><th rowspan="2" class="c-name">${esc(title)} · Date</th>${gs.map(g=>`<th colspan="${g.f.length}" class="gh">${esc(g.title)}</th>`).join('')}<th rowspan="2">Checker</th></tr>
+      <tr>${fs.map(f=>`<th class="fh">${esc(f.label)}</th>`).join('')}</tr></thead><tbody>`;
+      for(let day=1;day<=dim;day++)h+=`<tr class="${day===d?'today-row':''}"><th class="c-name">${day}/${m}/${y}</th>${fs.map(f=>cell(f,day)).join('')}<td class="cell who" ${day===d?'data-who':''}>${esc(whoOf(recOf(day),fs))}</td></tr>`;
+      h+='</tbody></table></div>'});
+  }else{
+    h+=`<div class="xl-wrap"><table class="xl xf"><thead><tr><th class="c-name">${key==='light'?'Name room':'Machine'}</th>${Array.from({length:dim},(_,i)=>`<th class="day ${i+1===d?'today':''}">${i+1}</th>`).join('')}</tr></thead><tbody>`;
+    groups.forEach(g=>{if(groups.length>1)h+=`<tr class="slot"><th class="c-name">${esc(g.title)}</th><td colspan="${dim}"></td></tr>`;
+      g.f.forEach(f=>{h+=`<tr><th class="c-name">${esc(f.label)}</th>${Array.from({length:dim},(_,i)=>cell(f,i+1)).join('')}</tr>`})});
+    h+='</tbody></table></div>';
+  }
+  h+=`<div class="card"><h3>หมายเหตุ <span id="noteReq" class="warn"></span></h3><textarea id="note" data-id="_note">${esc(r._note||'')}</textarea><div class="saved" id="saved"></div></div>
+  <div class="bar"><div class="barrow"><span id="left" class="warn"></span><button id="jump" class="link">ไปช่องที่ยังไม่กรอก</button></div>
+  <button id="primary" class="primary">ยืนยันผลตรวจ</button><div id="status" class="saved"></div></div>`;
   $('view').innerHTML=h;
-  $('view').onclick=e=>{const t=e.target;
-    if(t.dataset.t==='gng'){r[t.dataset.id]=t.textContent==='G'?'NG':'G';touch(r);renderForm(key)}
-    if(t.id==='back'){tab=returnTo;returnTo=null;render()}
-    if(t.id==='confirm')confirmSend(key,()=>renderForm(key),[
-      ...(blank.length?['ยังไม่กรอกค่า '+blank.length+' ช่อง: '+blank.map(f=>f.label).join(', ')]:[]),
-      ...(bad.length&&!r._note?['มีจุดผิดปกติ แต่ยังไม่เขียนหมายเหตุ']:[])])};
-  $('view').onchange=e=>{const t=e.target;if(!t.dataset.id)return;r[t.dataset.id]=t.value;touch(r);renderForm(key)};
+  document.querySelectorAll('.xf .today').forEach((el,i)=>{if(i===0)el.scrollIntoView({block:'nearest',inline:'center'})});
+  const td=id=>document.querySelector(`[data-cell="${CSS.escape(id)}"]`);
+  const state=()=>({bad:all.filter(f=>isBad(f,value(f,r))),blank:all.filter(f=>value(f,r)==='')});
+  // fromSync: values may have been changed by someone else; never overwrite the input being typed in.
+  const refresh=fromSync=>{const {bad,blank}=state();
+    for(const f of all){const c=td(f.id),v=value(f,r);c.classList.toggle('bad',isBad(f,v));
+      if(f.t==='num'){const i=c.querySelector('input');if(fromSync&&i!==document.activeElement&&i.value!==v)i.value=v}else c.textContent=showV(f,v)}
+    document.querySelectorAll('[data-who]').forEach((w,i)=>w.textContent=whoOf(r,(i===0?groups.slice(0,4):groups.slice(4)).flatMap(g=>g.f)));
+    $('sum').className='sum'+(bad.length?' bad':'');
+    $('sum').textContent=bad.length?'ผิดปกติ '+bad.length+' จุด: '+bad.map(f=>f.label).join(', '):title+(blank.length?'':' · ทุกจุดปกติ');
+    if(fromSync&&$('note')!==document.activeElement)$('note').value=r._note||'';
+    $('noteReq').textContent=bad.length?'(ต้องกรอก เพราะมีจุดผิดปกติ)':'';
+    $('note').classList.toggle('bad',!!(bad.length&&!r._note));
+    $('saved').textContent=pendLabel(key);
+    $('left').textContent=blank.length?`เหลือ ${blank.length} จาก ${all.length} ช่อง`:'กรอกครบทุกช่องแล้ว';
+    $('jump').hidden=!blank.length};
+  curRefresh=refresh;
+  const set=(id,v)=>{put(key,id,v);refresh()};
+  // Tap cycles: blank → first option → … → blank. G/NG: blank → G → NG.
+  const cycle=id=>{const f=all.find(f=>f.id===id),opts=['',...(f.t==='gng'?['G','NG']:f.opts)],v=value(f,r);set(id,opts[(opts.indexOf(v)+1)%opts.length])};
+  const jump=()=>{const f=all.find(f=>value(f,r)==='');if(!f)return;const c=td(f.id);
+    c.scrollIntoView({block:'center',inline:'center',behavior:motion()});(c.querySelector('input')||c).focus({preventScroll:true});
+    c.classList.add('flash');setTimeout(()=>c.classList.remove('flash'),1200)};
+  $('view').onclick=e=>{const t=e.target.closest('button,[data-tap]');if(!t)return;
+    if(t.dataset.tap)cycle(t.dataset.tap);
+    if(t.id==='jump')jump();
+    if(t.id==='back'){tab=returnTo;returnTo=null;render();scrollTo(0,0)}
+    if(t.id==='primary'){const {bad,blank}=state();confirmSend(key,()=>renderForm(key),[
+      ...(blank.length?['ยังไม่กรอก/เลือก '+blank.length+' ช่อง: '+blank.map(f=>f.label).join(', ')]:[]),
+      ...(bad.length&&!r._note?['มีจุดผิดปกติ แต่ยังไม่เขียนหมายเหตุ']:[])])}};
+  $('view').onchange=e=>{const t=e.target;if(t.dataset.id)set(t.dataset.id,t.value)};
+  $('view').onkeydown=e=>{const t=e.target;
+    if(t.dataset?.tap&&(e.key==='Enter'||e.key===' ')){e.preventDefault();cycle(t.dataset.tap)}
+    if(e.key==='Enter'&&t.type==='number'){e.preventDefault();set(t.dataset.id,t.value);jump()}};
+  refresh();
 }
 
-function renderTasks(){
-  const day=new Date($('date').value+'T12:00').getDay(), list=TASKS[day], r=rec('tasks');
-  const formDone=k=>!!db.rec[k+'|'+$('date').value]?._done;
+// Tasks helpers & views
+function formState(k,date=$('date').value){const fr=db.rec[k+'|'+date]||{},fs=FORMS[k][1].flatMap(g=>g.f);
+  const blank=fs.filter(f=>value(f,fr)==='').length,bad=fs.filter(f=>isBad(f,value(f,fr))).length;return {blank,bad,ok:!blank&&!bad}}
+function deriveTasks(){const day=new Date($('date').value+'T12:00').getDay(),list=TASKS[day],r=rec('tasks');
   list.forEach((t,i)=>{const ks=linksOf(t.name);
-    if(ks.length&&ks.every(formDone)&&!r['t'+i]){r['t'+i]=true;t.checks.forEach((_,j)=>r['t'+i+'c'+j]=true);touch(r)}
-    // A task with sub-checks is done only when every sub-check is ticked; its own checkbox is read-only.
-    if(t.checks.length){const all=t.checks.every((_,j)=>r['t'+i+'c'+j]);if(!!r['t'+i]!==all){r['t'+i]=all;save()}}});
-  const done=list.filter((_,i)=>r['t'+i]).length;
-  // A task with no time (e.g. "Check WWTP zone 2" header) takes the slot of the next timed task, so it stays with its sub-rows.
-  const slots=list.map(t=>slotOf(t.time));
+    if(ks.length){const ok=ks.every(k=>formState(k).ok);
+      t.checks.forEach((_,j)=>{if(!!r['t'+i+'c'+j]!==ok)put('tasks','t'+i+'c'+j,ok)});
+      if(!t.checks.length&&!!r['t'+i]!==ok)put('tasks','t'+i,ok)}
+    if(t.checks.length){const all=t.checks.every((_,j)=>r['t'+i+'c'+j]);if(!!r['t'+i]!==all)put('tasks','t'+i,all)}});
+  return {day,list,r}}
+function taskSlots(list){const slots=list.map(t=>slotOf(t.time));
   for(let i=slots.length-1,next=-1;i>=0;i--){if(slots[i]<0)slots[i]=next;else next=slots[i]}
   for(let i=0,prev=0;i<slots.length;i++){if(slots[i]<0)slots[i]=prev;else prev=slots[i]}
-  let h=`<div class="sum">คืนวัน${DAYS_TH[day]} — เสร็จ ${done}/${list.length}</div>`;
+  return slots}
+const nowSlotOf=()=>{const hr=new Date().getHours();return $('date').value===shiftDate()&&(hr>=19||hr<8)?slotOf(String(hr)):-1};
+// The only page: tonight's block of the Excel "Check sheet night" — Maintenance check theme | Time | Periodical |
+// Check theme 1..4 | Remark. Tap a check-theme cell to tick it. A task with a check sheet opens it from its row
+// and ticks itself when the sheet is filled and all normal.
+function renderTasks(){
+  curRefresh=null;
+  const {day,list,r}=deriveTasks(), who=r._who||{}, date=$('date').value;
+  const done=list.filter((_,i)=>r['t'+i]).length, slots=taskSlots(list), nowSlot=nowSlotOf();
+  const W=Math.max(1,...list.map(t=>t.checks.length)), ng=Object.keys(FORMS).reduce((n,k)=>n+formState(k).bad,0);
+  const doneBy=(t,i)=>[...new Set((t.checks.length?t.checks.map((_,j)=>r['t'+i+'c'+j]&&who['t'+i+'c'+j]):[r['t'+i]&&who['t'+i]]).filter(Boolean))].join(', ');
+  let h=`<div class="sum">Check sheet night · ${DAYS_TH[day]} <span class="chip">${done}/${list.length}</span>
+    <div class="prog" role="progressbar" aria-valuemin="0" aria-valuemax="${list.length}" aria-valuenow="${done}"><i style="width:${list.length?done/list.length*100:0}%"></i></div>
+    ${ng?`<span class="warn" style="color:var(--ng);font-weight:600"><i class="ti ti-alert-triangle" aria-hidden="true"></i> ผิดปกติ ${ng} จุดในเช็คชีท</span>`:''}</div>
+  <div class="xl-wrap" id="xlw"><table class="xl"><thead><tr><th class="c-name">Maintenance check theme</th><th>Time</th><th>Periodical</th>${Array.from({length:W},(_,j)=>`<th>Check theme ${j+1}</th>`).join('')}<th>Remark</th></tr></thead><tbody>`;
   SLOTS.forEach((name,s)=>{
     const idx=list.map((_,i)=>i).filter(i=>slots[i]===s);if(!idx.length)return;
     const d=idx.filter(i=>r['t'+i]).length;
-    // Finished slots collapse so the open ones are what is left to do.
-    h+=`<details class="card" ${d<idx.length?'open':''}><summary>${esc(name)} <span class="warn">${d}/${idx.length}</span></summary>`;
-    for(const i of idx){const t=list[i];
-      h+=`<div class="${t.sub?'sub':''}"><label class="chk"><input type="checkbox" data-id="t${i}" ${r['t'+i]?'checked':''} ${t.checks.length?'disabled title="ติ๊กหัวข้อย่อยให้ครบ"':''}><span><b>${esc(t.name)}</b><br><span class="meta">${esc(t.time)} ${t.freq?'· '+esc(t.freq):''}</span></span></label>`;
-      const ks=linksOf(t.name);
-      if(ks.length)h+=`<div class="links">${ks.map(k=>`<button data-open="${k}" class="${formDone(k)?'done':''}">${formDone(k)?'✓ ':''}เปิดฟอร์ม ${esc(FORMS[k][0])} →</button>`).join('')}</div>`;
-      t.checks.forEach((c,j)=>h+=`<label class="chk sub"><input type="checkbox" data-id="t${i}c${j}" ${r['t'+i+'c'+j]?'checked':''}>${esc(c)}</label>`);
-      h+='</div>'}
-    h+='</details>'});
-  h+=`<div class="card"><h3>หมายเหตุกะ</h3><textarea data-id="_note">${esc(r._note||'')}</textarea>
-  <div class="saved">${r._at?'บันทึกล่าสุด '+esc(r._at)+sentLabel(r):''}</div></div>
-  <div class="bar"><button id="confirm" class="primary">ยืนยันจบกะ + ส่ง Google Sheet</button><div id="status" class="saved"></div></div>`;
-  $('view').innerHTML=h;
+    h+=`<tr class="slot ${s===nowSlot?'now':''}"><th class="c-name">${esc(name)}${s===nowSlot?' · ตอนนี้':''}</th><td colspan="${W+3}">${d}/${idx.length}</td></tr>`;
+    for(const i of idx){const t=list[i],ks=linksOf(t.name),by=doneBy(t,i);
+      h+=`<tr id="task${i}"><th class="c-name ${r['t'+i]?'done':''}">${r['t'+i]?'✓ ':''}${esc(t.name)}${by?`<small>โดย ${esc(by)}</small>`:''}</th>
+        <td class="mono" style="white-space:nowrap">${esc(t.time||'')}</td><td>${esc(t.freq||'')}</td>`;
+      if(ks.length){
+        h+=`<td class="sheetcell" colspan="${W}">${ks.map(k=>{const x=formState(k);return `<button data-open="${k}" class="${x.ok?'ok':x.bad?'ng':''}"><i class="ti ti-table" aria-hidden="true"></i> ${esc(FORMS[k][0])} · ${x.ok?'✓ ครบ':x.bad?'NG '+x.bad:'เหลือ '+x.blank}</button>`}).join('')}
+          ${t.checks.length?`<small>${t.checks.map(esc).join(' · ')}</small>`:''}</td>`;
+      }else{
+        const ids=t.checks.length?t.checks.map((c,j)=>['t'+i+'c'+j,c]):[['t'+i,'ทำแล้ว']];
+        ids.forEach(([id,c])=>h+=`<td class="ck ${r[id]?'on':''}" data-ck="${id}" role="checkbox" aria-checked="${!!r[id]}" tabindex="0"><span class="bx">${r[id]?'✓':''}</span>${esc(c)}</td>`);
+        for(let j=ids.length;j<W;j++)h+='<td></td>';
+      }
+      h+=`<td class="rm"><input data-id="n${i}" value="${esc(r['n'+i]||'')}" aria-label="Remark ${esc(t.name)}"></td></tr>`}
+  });
+  h+=`</tbody></table></div>
+  <div class="card"><h3>หมายเหตุกะ</h3><textarea data-id="_note" placeholder="บันทึกภาพรวมของกะนี้">${esc(r._note||'')}</textarea>
+  <div class="saved">${esc(pendLabel('tasks'))}</div></div>
+  <div class="bar"><button id="confirm" class="primary">ยืนยันจบกะ</button><div id="status" class="saved"></div></div>`;
+  // Keep the grid where it was (both directions) when it redraws after a tick.
+  const old=$('xlw'),sl=old?.scrollLeft||0,st=old?.scrollTop||0;
+  $('view').innerHTML=h;$('xlw').scrollLeft=sl;$('xlw').scrollTop=st;
+  const tick=id=>{put('tasks',id,!r[id]);renderTasks()};
   $('view').onclick=e=>{
-    if(e.target.dataset.open){returnTo='tasks';tab=e.target.dataset.open;render();scrollTo(0,0);return}
+    const b=e.target.closest('[data-open]');if(b){returnTo='tasks';tab=b.dataset.open;render();scrollTo(0,0);return}
+    const c=e.target.closest('[data-ck]');if(c)return tick(c.dataset.ck);
     if(e.target.id==='confirm')confirmSend('tasks',renderTasks,done<list.length?['งานยังไม่ติ๊ก '+(list.length-done)+' ข้อ']:[])};
-  $('view').onchange=e=>{const t=e.target;if(!t.dataset.id)return;r[t.dataset.id]=t.type==='checkbox'?t.checked:t.value;touch(r);if(t.type==='checkbox')renderTasks()};
+  $('view').onkeydown=e=>{const c=e.target.closest?.('[data-ck]');if(c&&(e.key==='Enter'||e.key===' ')){e.preventDefault();tick(c.dataset.ck)}};
+  $('view').onchange=e=>{const t=e.target;if(t.dataset.id)put('tasks',t.dataset.id,t.value)};
 }
 
 function csv(key){
@@ -218,30 +492,59 @@ function csv(key){
   return '﻿'+[head,...body].map(l=>l.map(q).join(',')).join('\r\n');
 }
 function renderData(){
-  const pending=Object.entries(db.rec).filter(([,r])=>r._at&&!r._sent).map(([k])=>k);
-  let h=`<div class="card"><h3>Google Sheet</h3>
-  <p class="meta">ค้างส่ง ${pending.length} รายการ${pending.length?': '+pending.map(esc).join(', '):''}</p>
+  curRefresh=null;
+  const pending=[...new Set(db.q.map(x=>x.form+'|'+x.date))];
+  let h=`<button id="back" class="link" style="margin:0 0 var(--s2);min-height:44px"><i class="ti ti-arrow-left" aria-hidden="true"></i> เช็คลิสต์</button><div class="card"><h3>Google Sheet</h3>
+  <p class="meta">ค้างส่ง ${db.q.length} ช่อง${pending.length?' ใน '+pending.map(esc).join(', '):''}</p>
   <button id="resend" ${pending.length?'':'disabled'}>ส่งที่ค้างทั้งหมด</button><div id="status" class="saved"></div></div>`;
-  h+='<div class="card"><h3>Export เป็น CSV (เปิดด้วย Excel ได้)</h3><p class="meta">ข้อมูลเก็บในเบราว์เซอร์เครื่องนี้เท่านั้น ควร export ทุกสิ้นเดือน</p>';
-  for(const [k,l] of TABS.slice(0,-1))h+=`<button data-csv="${k}" style="margin:4px">${esc(l)}</button>`;
-  h+=`</div><div class="card"><h3>สำรอง / ย้ายเครื่อง</h3><button id="bk">ดาวน์โหลด backup (.json)</button> <label class="meta"> นำเข้า: <input type="file" id="imp" accept=".json"></label></div>
-  <div class="card"><h3>บัญชี</h3><p class="meta">เข้าสู่ระบบเป็น ${esc(db.user.name)}</p><button id="logout">ออกจากระบบ</button></div>`;
+  h+='<div class="card"><h3>Export เป็น CSV (เปิดด้วย Excel ได้)</h3><p class="meta">บันทึกและซิงก์ข้อมูลกับ Google Sheet อัตโนมัติ (สามารถ Export เป็น CSV เพื่อสำรองได้)</p>';
+  for(const [k,l] of FORM_LIST)h+=`<button data-csv="${k}" style="margin:4px">${esc(l)}</button>`;
+  h+=`</div><div class="card"><h3>สำรอง / ย้ายเครื่อง</h3>
+  <div style="display:flex;gap:var(--s2);flex-wrap:wrap;align-items:center">
+    <button id="bk">ดาวน์โหลด backup (.json)</button>
+    <label class="btn-file"><i class="ti ti-upload"></i> นำเข้า backup (.json)<input type="file" id="imp" accept=".json" style="display:none"></label>
+  </div></div>
+  <div class="card"><h3>บัญชีและการตั้งค่า</h3>
+  <p class="meta">เข้าสู่ระบบเป็น <b>${esc(db.user.name)}</b></p>
+  <div style="display:flex;gap:var(--s2)">
+    <button id="logout">ออกจากระบบ</button>
+  </div></div>`;
   $('view').innerHTML=h; $('view').onchange=null;
   const dl=(name,text,type)=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();URL.revokeObjectURL(a.href)};
   $('view').onclick=async e=>{const k=e.target.dataset.csv;
+    if(e.target.closest('#back')){tab='tasks';return render()}
     if(e.target.id==='logout'&&confirm('ออกจากระบบ? ข้อมูลที่ยังไม่ส่งจะยังอยู่ในเครื่อง')){delete db.user;tab='tasks';save();return render()}if(k)dl(`night-shift-${k}.csv`,csv(k),'text/csv');if(e.target.id==='bk')dl('night-shift-backup.json',JSON.stringify(db),'application/json');
-    if(e.target.id==='resend'){const msgs=[];for(const p of pending){const [key,date]=p.split('|');msgs.push(p+': '+await send(key,date))}renderData();$('status').textContent=msgs.join(' | ')}};
+    if(e.target.id==='resend'){const msg=await flush();renderData();$('status').textContent=msg||'ส่งครบแล้ว'}};
   $('imp').onchange=async e=>{try{const d=JSON.parse(await e.target.files[0].text());if(!d.rec)throw Error('ไฟล์ไม่ใช่ backup');Object.assign(db.rec,d.rec);save();alert('นำเข้าแล้ว')}catch(err){alert('นำเข้าไม่ได้: '+err.message)}};
 }
 
 function renderLogin(){
-  $('tabs').innerHTML='';
-  $('view').innerHTML=`<form class="card" id="login"><h3>เข้าสู่ระบบ</h3>
-  <p class="meta">ใช้ชื่อและ PIN 4 หลักตามที่หัวหน้าตั้งไว้ในแท็บ users ของ Google Sheet</p>
-  <input id="lname" placeholder="ชื่อ" autocomplete="username" required style="width:100%;margin:6px 0">
-  <input id="lpin" placeholder="PIN 4 หลัก" type="password" inputmode="numeric" pattern="\\d{4}" maxlength="4" autocomplete="current-password" required style="width:100%;margin:6px 0">
-  <button class="primary">เข้าสู่ระบบ</button><div id="status" class="saved"></div></form>`;
+  $('view').innerHTML=`<div class="login-box">
+  <div class="login-brand">
+    <div class="b-ico"><i class="ti ti-moon-stars"></i></div>
+    <h2>Night Shift Plan</h2>
+    <p class="meta">ระบบบันทึกและตรวจเช็คงานกะดึก</p>
+  </div>
+  <form id="login">
+    <h3>เข้าสู่ระบบ</h3>
+    <p class="meta">ใช้ชื่อและ PIN 4 หลักตามที่หัวหน้าตั้งไว้ในแท็บ users ของ Google Sheet</p>
+    <div class="field-grp">
+      <label for="lname">ชื่อผู้ใช้งาน</label>
+      <input id="lname" placeholder="ระบุชื่อ (เช่น test)" autocomplete="username" required style="width:100%">
+    </div>
+    <div class="field-grp">
+      <label for="lpin">รหัส PIN 4 หลัก</label>
+      <div class="pin-wrap">
+        <input id="lpin" placeholder="••••" type="password" inputmode="numeric" pattern="\\d{4}" maxlength="4" autocomplete="current-password" required>
+        <button type="button" id="togglePin" class="pin-eye" aria-label="แสดง/ซ่อนรหัส PIN"><i class="ti ti-eye"></i></button>
+      </div>
+    </div>
+    <button class="primary" style="margin-top:var(--s3)">เข้าสู่ระบบ</button>
+    <div id="status" class="saved" role="status" aria-live="polite"></div>
+  </form></div>`;
   $('view').onclick=$('view').onchange=null;
+  const eye=$('togglePin');
+  if(eye){eye.onclick=()=>{const p=$('lpin');const isP=p.type==='password';p.type=isP?'text':'password';eye.innerHTML=`<i class="ti ti-eye-${isP?'off':''}"></i>`}}
   $('login').onsubmit=async e=>{e.preventDefault();$('status').textContent='กำลังตรวจสอบ...';
     db.user={name:$('lname').value.trim(),pin:$('lpin').value};
     try{const j=await post({action:'login'});db.user.name=j.name;save();render()}
@@ -249,15 +552,28 @@ function renderLogin(){
 }
 
 function render(){
-  $('who').textContent=db.user?db.user.name:''; $('hrow').hidden=!db.user;
-  if(!db.user)return renderLogin();
-  $('tabs').innerHTML=TABS.map(([k,l])=>`<button class="${k===tab?'on':''}" data-tab="${k}" aria-label="${esc(l)}">${esc(SHORT[k])}</button>`).join('');
-  tab==='tasks'?renderTasks():tab==='data'?renderData():renderForm(tab);
+  const loggedIn=!!db.user;
+  $('who').textContent=loggedIn?db.user.name:'';
+  $('hrow').hidden=!loggedIn;
+  document.querySelector('header').hidden=!loggedIn;
+  if(!loggedIn)return renderLogin();
+  
+  document.body.classList.toggle('is-form',!!FORMS[tab]);
+  const view={tasks:renderTasks,data:renderData}[tab];view?view():renderForm(tab);
+  badge();
+  if(Date.now()-lastSync>5000)sync();
 }
-$('tabs').onclick=e=>{if(e.target.dataset.tab){tab=e.target.dataset.tab;returnTo=null;render()}};
+
+function badge(){const el=document.getElementById('pending');if(!el)return;
+  const n=db.q.length;el.innerHTML=n?`<span class="dot">${n}</span>`:''}
+const wake=()=>{try{navigator.wakeLock?.request('screen').catch(()=>{})}catch(e){}};
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){wake();sync()}});wake();
+setInterval(sync,30000);
+addEventListener('online',sync);
+$('menuBtn').onclick=()=>{tab='data';returnTo=null;render();scrollTo(0,0)};
+const thBtn=$('themeToggle');if(thBtn)thBtn.onclick=toggleTheme;
 render();
 
-// self-check of the threshold logic
 console.assert(outOfRange(N('x','',null,90),91)&&!outOfRange(N('x','',null,90),90),'max check');
 console.assert(outOfRange(N('x','',0.85,1),0.8)&&!outOfRange(N('x','',0.85,1),''),'min/blank check');
 console.assert(shiftDate(new Date(2026,10,18,3))==='2026-11-17'&&shiftDate(new Date(2026,10,18,21))==='2026-11-18','shift date');
