@@ -29,6 +29,7 @@
  --acc-ink:#8a5a00;--ok:#1a7f37;--okbg:#dafbe1;--okdot:#1a7f37;--ng:#a40e26;--ngbg:#ffebe9;--ngdot:#cf222e;color-scheme:light}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:var(--t-md)/1.5 system-ui,"Segoe UI","Leelawadee UI",Tahoma,sans-serif}
 .mono,input[type=date],input[type=number],#sync{font-family:var(--mono);font-variant-numeric:tabular-nums}
 :focus-visible{outline:2px solid var(--acc);outline-offset:2px}
@@ -190,10 +191,10 @@ table.xl{border-collapse:separate;border-spacing:0;font-size:13px;line-height:1.
 .xl .c-name{position:sticky;left:0;z-index:1;min-width:150px;max-width:170px;background:var(--raise);font-weight:600}
 .xl thead .c-name{z-index:3}
 .xl small{display:block;font-weight:400;color:var(--mute);font-size:12px}
-.xl tr.slot th,.xl tr.slot td{background:var(--track);font-weight:600;position:sticky}
+.xl tr.slot th,.xl tr.slot td{background:var(--track);font-weight:600}
 .xl tr.slot.now th{box-shadow:inset 4px 0 0 var(--acc)}
 .xl td.ck{min-width:132px;max-width:180px;cursor:pointer}
-.xl td.ck .bx{display:inline-flex;width:22px;height:22px;border:1.5px solid var(--mute);border-radius:5px;align-items:center;justify-content:center;margin-right:6px;vertical-align:-5px;font-weight:700}
+.xl td.ck .bx,.xl .ckl .bx{display:inline-flex;width:22px;height:22px;border:1.5px solid var(--mute);border-radius:5px;align-items:center;justify-content:center;margin-right:6px;vertical-align:-5px;font-weight:700}
 .xl td.ck.on{background:var(--okbg);color:var(--ok)}
 .xl td.ck.on .bx{background:var(--okdot);border-color:var(--okdot);color:var(--card)}
 .xl td.ck.ro{cursor:default}
@@ -215,6 +216,19 @@ table.xl{border-collapse:separate;border-spacing:0;font-size:13px;line-height:1.
 .xl.xf td.cell input{width:76px;min-height:34px;padding:2px 6px;font-size:14px;text-align:right}
 .xl.xf td.who{font-family:inherit;font-size:12px;color:var(--mute)}
 .xl.xf td.flash{outline:2px solid var(--acc);outline-offset:-2px}
+/* Phones: the checklist fits the screen width (2 columns, no sideways scroll); same rows and gridlines as the sheet. */
+.xl-wrap.fit{overflow:visible;max-height:none}
+table.xl.compact{width:100%;table-layout:fixed}
+.xl.compact .c-name,.xl.compact thead th{position:static;min-width:0;max-width:none}
+.xl.compact col.c1{width:40%}
+.xl.compact td{padding:4px}
+.xl.compact .ckl{display:flex;align-items:flex-start;gap:6px;padding:8px 6px;border-radius:6px;min-height:44px;cursor:pointer;line-height:1.35}
+.xl.compact .ckl+.ckl{border-top:1px dashed var(--line)}
+.xl.compact .ckl .bx{flex:none;margin:0}
+.xl.compact .ckl.on{background:var(--okbg);color:var(--ok)}
+.xl.compact .ckl.on .bx{background:var(--okdot);border-color:var(--okdot);color:var(--card)}
+.xl.compact .rm2{width:100%;min-height:36px;font-size:13px;padding:4px 8px;margin-top:4px}
+.xl.compact td.sheetcell button{width:100%;justify-content:flex-start}
 .legend{display:flex;gap:var(--s3);flex-wrap:wrap;font-size:var(--t-sm);color:var(--mute);margin:0 0 var(--s3)}
 </style>
 </head>
@@ -353,6 +367,20 @@ function prevRec(key){const d=$('date').value;const k=Object.keys(db.rec).filter
 // Check sheets in their Excel layout. Sub1/Sub2: one row per day of the month (two tables, as on paper).
 // Light / Auto drain: one row per room or machine, one column per day. Only tonight's row/column is editable;
 // other days show what this device has (it syncs only the date on screen).
+// Touch axis lock for grids that scroll both ways: the first ~8px of a swipe picks left/right or up/down,
+// then the other direction is held still, so a sideways swipe does not drift the rows up or down.
+// At the grid top/bottom an up/down swipe is handed to the page. Light momentum unless reduced motion is on.
+function axisLock(el){let x0=null,y0,sl,st,axis,lx,ly,lt,vx=0,vy=0,raf=0;
+  el.addEventListener("touchstart",e=>{if(e.touches.length!==1)return;cancelAnimationFrame(raf);const t=e.touches[0];
+    x0=lx=t.clientX;y0=ly=t.clientY;sl=el.scrollLeft;st=el.scrollTop;axis=null;vx=vy=0;lt=performance.now()},{passive:true});
+  el.addEventListener("touchmove",e=>{if(x0===null||e.touches.length!==1)return;const t=e.touches[0],dx=t.clientX-x0,dy=t.clientY-y0;
+    if(!axis){if(Math.abs(dx)<8&&Math.abs(dy)<8)return;axis=Math.abs(dx)>Math.abs(dy)?"x":"y"}
+    const now=performance.now(),dt=Math.max(1,now-lt);vx=(t.clientX-lx)/dt;vy=(t.clientY-ly)/dt;lx=t.clientX;ly=t.clientY;lt=now;
+    if(axis==="x"){e.preventDefault();el.scrollLeft=sl-dx;return}
+    const edge=(el.scrollTop<=0&&dy>0)||(el.scrollTop+el.clientHeight>=el.scrollHeight-1&&dy<0);
+    if(!edge){e.preventDefault();el.scrollTop=st-dy}},{passive:false});
+  el.addEventListener("touchend",()=>{const a=axis;x0=null;if(!a||motion()==="auto")return;let v=a==="x"?-vx:-vy;
+    const step=()=>{if(Math.abs(v)<0.02)return;if(a==="x")el.scrollLeft+=v*16;else el.scrollTop+=v*16;v*=0.94;raf=requestAnimationFrame(step)};raf=requestAnimationFrame(step)})}
 const LAYOUT={sub1:'rows',sub2:'rows',light:'cols',adrain:'cols'};
 const SHORT_V={'ปกติ':'✓','ผิดปกติ':'✗','ไม่เปิดใช้':'–'};
 const showV=(f,v)=>f.t==='sel'?(SHORT_V[v]??v):v;
@@ -384,6 +412,7 @@ function renderForm(key){
   <div class="bar"><div class="barrow"><span id="left" class="warn"></span><button id="jump" class="link">ไปช่องที่ยังไม่กรอก</button></div>
   <button id="primary" class="primary">ยืนยันผลตรวจ</button><div id="status" class="saved"></div></div>`;
   $('view').innerHTML=h;
+  document.querySelectorAll('.xl-wrap:not(.fit)').forEach(axisLock);
   document.querySelectorAll('.xf .today').forEach((el,i)=>{if(i===0)el.scrollIntoView({block:'nearest',inline:'center'})});
   const td=id=>document.querySelector(`[data-cell="${CSS.escape(id)}"]`);
   const state=()=>({bad:all.filter(f=>isBad(f,value(f,r))),blank:all.filter(f=>value(f,r)==='')});
@@ -443,17 +472,24 @@ function renderTasks(){
   curRefresh=null;
   const {day,list,r}=deriveTasks(), who=r._who||{}, date=$('date').value;
   const done=list.filter((_,i)=>r['t'+i]).length, slots=taskSlots(list), nowSlot=nowSlotOf();
+  const narrow=innerWidth<640; // phones: 2-column layout that fits the screen
   const W=Math.max(1,...list.map(t=>t.checks.length)), ng=Object.keys(FORMS).reduce((n,k)=>n+formState(k).bad,0);
   const doneBy=(t,i)=>[...new Set((t.checks.length?t.checks.map((_,j)=>r['t'+i+'c'+j]&&who['t'+i+'c'+j]):[r['t'+i]&&who['t'+i]]).filter(Boolean))].join(', ');
   let h=`<div class="sum">Check sheet night · ${DAYS_TH[day]} <span class="chip">${done}/${list.length}</span>
     <div class="prog" role="progressbar" aria-valuemin="0" aria-valuemax="${list.length}" aria-valuenow="${done}"><i style="width:${list.length?done/list.length*100:0}%"></i></div>
     ${ng?`<span class="warn" style="color:var(--ng);font-weight:600"><i class="ti ti-alert-triangle" aria-hidden="true"></i> ผิดปกติ ${ng} จุดในเช็คชีท</span>`:''}</div>
-  <div class="xl-wrap" id="xlw"><table class="xl"><thead><tr><th class="c-name">Maintenance check theme</th><th>Time</th><th>Periodical</th>${Array.from({length:W},(_,j)=>`<th>Check theme ${j+1}</th>`).join('')}<th>Remark</th></tr></thead><tbody>`;
+  ${narrow?`<div class="xl-wrap fit" id="xlw"><table class="xl compact"><colgroup><col class="c1"><col></colgroup><thead><tr><th class="c-name">Maintenance check theme</th><th>Check theme / Remark</th></tr></thead><tbody>`
+  :`<div class="xl-wrap" id="xlw"><table class="xl"><thead><tr><th class="c-name">Maintenance check theme</th><th>Time</th><th>Periodical</th>${Array.from({length:W},(_,j)=>`<th>Check theme ${j+1}</th>`).join('')}<th>Remark</th></tr></thead><tbody>`}`;
   SLOTS.forEach((name,s)=>{
     const idx=list.map((_,i)=>i).filter(i=>slots[i]===s);if(!idx.length)return;
     const d=idx.filter(i=>r['t'+i]).length;
-    h+=`<tr class="slot ${s===nowSlot?'now':''}"><th class="c-name">${esc(name)}${s===nowSlot?' · ตอนนี้':''}</th><td colspan="${W+3}">${d}/${idx.length}</td></tr>`;
+    h+=`<tr class="slot ${s===nowSlot?'now':''}"><th class="c-name">${esc(name)}${s===nowSlot?' · ตอนนี้':''}</th><td colspan="${narrow?1:W+3}">${d}/${idx.length}</td></tr>`;
     for(const i of idx){const t=list[i],ks=linksOf(t.name),by=doneBy(t,i);
+      if(narrow){const ids=t.checks.length?t.checks.map((c,j)=>['t'+i+'c'+j,c]):[['t'+i,'ทำแล้ว']];
+        h+=`<tr id="task${i}"><th class="c-name ${r['t'+i]?'done':''}">${r['t'+i]?'✓ ':''}${esc(t.name)}<small class="mono">${esc(t.time||'')}</small>${t.freq?`<small>${esc(t.freq)}</small>`:''}${by?`<small>โดย ${esc(by)}</small>`:''}</th><td${ks.length?' class="sheetcell"':''}>`;
+        h+=ks.length?ks.map(k=>{const x=formState(k);return `<button data-open="${k}" class="${x.ok?'ok':x.bad?'ng':''}"><i class="ti ti-table" aria-hidden="true"></i> ${esc(FORMS[k][0])} · ${x.ok?'✓ ครบ':x.bad?'NG '+x.bad:'เหลือ '+x.blank}</button>`}).join('')
+          :ids.map(([id,c])=>`<div class="ckl ${r[id]?'on':''}" data-ck="${id}" role="checkbox" aria-checked="${!!r[id]}" tabindex="0"><span class="bx">${r[id]?'✓':''}</span><span>${esc(c)}</span></div>`).join('');
+        h+=`<input class="rm2" data-id="n${i}" value="${esc(r['n'+i]||'')}" placeholder="Remark" aria-label="Remark ${esc(t.name)}"></td></tr>`;continue}
       h+=`<tr id="task${i}"><th class="c-name ${r['t'+i]?'done':''}">${r['t'+i]?'✓ ':''}${esc(t.name)}${by?`<small>โดย ${esc(by)}</small>`:''}</th>
         <td class="mono" style="white-space:nowrap">${esc(t.time||'')}</td><td>${esc(t.freq||'')}</td>`;
       if(ks.length){
@@ -472,7 +508,7 @@ function renderTasks(){
   <div class="bar"><button id="confirm" class="primary">ยืนยันจบกะ</button><div id="status" class="saved"></div></div>`;
   // Keep the grid where it was (both directions) when it redraws after a tick.
   const old=$('xlw'),sl=old?.scrollLeft||0,st=old?.scrollTop||0;
-  $('view').innerHTML=h;$('xlw').scrollLeft=sl;$('xlw').scrollTop=st;
+  $('view').innerHTML=h;$('xlw').scrollLeft=sl;$('xlw').scrollTop=st;if(!narrow)axisLock($('xlw'));
   const tick=id=>{put('tasks',id,!r[id]);renderTasks()};
   $('view').onclick=e=>{
     const b=e.target.closest('[data-open]');if(b){returnTo='tasks';tab=b.dataset.open;render();scrollTo(0,0);return}
@@ -570,6 +606,7 @@ const wake=()=>{try{navigator.wakeLock?.request('screen').catch(()=>{})}catch(e)
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){wake();sync()}});wake();
 setInterval(sync,30000);
 addEventListener('online',sync);
+let wasNarrow=innerWidth<640;addEventListener('resize',()=>{const n=innerWidth<640;if(n!==wasNarrow&&tab==='tasks')renderTasks();wasNarrow=n});
 $('menuBtn').onclick=()=>{tab='data';returnTo=null;render();scrollTo(0,0)};
 const thBtn=$('themeToggle');if(thBtn)thBtn.onclick=toggleTheme;
 render();
