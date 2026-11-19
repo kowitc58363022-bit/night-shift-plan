@@ -238,6 +238,13 @@ table.xl.compact{width:100%;table-layout:fixed}
 .slots button.on{background:var(--acc);color:var(--on-acc);border-color:var(--acc)}
 /* iOS zooms into any field under 16px when tapped: keep every field at 16px on touch screens. */
 @media (pointer:coarse){input,select,textarea{font-size:16px!important}}
+/* Shift photos: thumbnails under the shift note */
+.photos{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;margin-top:var(--s2)}
+.photos .ph{position:relative;width:88px;height:88px;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);background:var(--raise)}
+.photos .ph img{width:100%;height:100%;object-fit:cover;display:block}
+.photos .phx{position:absolute;top:2px;right:2px;min-height:0;width:28px;height:28px;padding:0;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;border:0;font-size:16px;line-height:1}
+.photos .addph{width:88px;height:88px;flex-direction:column;justify-content:center;gap:2px;font-size:12px}
+.photos .addph i{font-size:24px}
 .legend{display:flex;gap:var(--s3);flex-wrap:wrap;font-size:var(--t-sm);color:var(--mute);margin:0 0 var(--s3)}
 </style>
 </head>
@@ -462,6 +469,18 @@ function renderForm(key){
   refresh();
 }
 
+// ---------- shift photos ----------
+// Each photo is its own field "ph<time>" = {"id":driveId,"by":name}, so two people adding photos at once never clash.
+const photosOf=r=>Object.keys(r).filter(k=>/^ph\d+$/.test(k)&&r[k]).sort().map(k=>{try{return [k,JSON.parse(r[k])]}catch(e){return null}}).filter(Boolean);
+// Shrink to max 1600 px JPEG (~200-400 KB) before upload; phone photos are 3-8 MB.
+async function shrink(file,max=1600){const img=await createImageBitmap(file),k=Math.min(1,max/Math.max(img.width,img.height));
+  const c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext('2d').drawImage(img,0,0,c.width,c.height);return c.toDataURL('image/jpeg',0.8)}
+async function addPhotos(files){const st=$('phst'),date=$('date').value;let n=0;
+  for(const f of files){if(st)st.textContent=`กำลังอัปรูป ${++n}/${files.length}…`;
+    try{const j=await post({action:'upload',date,data:await shrink(f)});put('tasks','ph'+Date.now(),JSON.stringify({id:j.id,by:db.user.name}))}
+    catch(e){if(st)st.textContent='อัปรูปไม่ได้ (ต้องมีเน็ต): '+e.message;return}}
+  renderTasks();const s2=$('phst');if(s2)s2.textContent='แนบรูปแล้ว '+files.length+' รูป'}
+
 // Tasks helpers & views
 function formState(k,date=$('date').value){const fr=db.rec[k+'|'+date]||{},fs=FORMS[k][1].flatMap(g=>g.f);
   const blank=fs.filter(f=>value(f,fr)==='').length,bad=fs.filter(f=>isBad(f,value(f,fr))).length;return {blank,bad,ok:!blank&&!bad}}
@@ -521,6 +540,8 @@ function renderTasks(){
   });
   h+=`</tbody></table></div>
   <div class="card"><h3>หมายเหตุกะ</h3><textarea data-id="_note" placeholder="บันทึกภาพรวมของกะนี้">${esc(r._note||'')}</textarea>
+  <div class="photos">${photosOf(r).map(([k,p])=>`<div class="ph"><a href="https://drive.google.com/file/d/${encodeURIComponent(p.id)}/view" target="_blank" rel="noopener"><img src="https://drive.google.com/thumbnail?id=${encodeURIComponent(p.id)}&sz=w320" alt="รูปโดย ${esc(p.by||'')}" loading="lazy"></a><button class="phx" data-delph="${k}" aria-label="ลบรูป">×</button></div>`).join('')}
+  <label class="btn-file addph"><i class="ti ti-camera" aria-hidden="true"></i>แนบรูป<input type="file" id="phin" accept="image/*" multiple hidden></label></div><div id="phst" class="saved" role="status"></div>
   <div class="saved">${esc(pendLabel('tasks'))}</div></div>
   <div class="bar">${nextSlot>=0?`<button id="nextslot" class="primary">ถัดไป: ${esc(SLOTS[nextSlot])} →</button><button id="confirm" class="link" style="width:100%;min-height:44px">ยืนยันจบกะ</button>`:`<button id="confirm" class="primary">ยืนยันจบกะ</button>`}<div id="status" class="saved"></div></div>`;
   // Keep the grid where it was (both directions) when it redraws after a tick.
@@ -530,9 +551,11 @@ function renderTasks(){
   $('view').onclick=e=>{
     const b=e.target.closest('[data-open]');if(b){returnTo='tasks';tab=b.dataset.open;render();scrollTo(0,0);return}
     const c=e.target.closest('[data-ck]');if(c)return tick(c.dataset.ck);
+    const dp=e.target.closest('[data-delph]');if(dp){if(confirm('ลบรูปนี้ออกจากกะ?')){put('tasks',dp.dataset.delph,'');renderTasks()}return}
     const sb=e.target.closest('[data-slot]');if(sb){slotSel=+sb.dataset.slot;$('xlw').scrollTop=0;$('xlw').scrollLeft=0;renderTasks();scrollTo(0,0);return}
     if(e.target.id==='nextslot'){slotSel=nextSlot;$('xlw').scrollTop=0;renderTasks();scrollTo({top:0,behavior:motion()});return}
     if(e.target.id==='confirm')confirmSend('tasks',renderTasks,done<list.length?['งานยังไม่ติ๊ก '+(list.length-done)+' ข้อ']:[])};
+  $('phin').onchange=e=>addPhotos([...e.target.files]);
   $('view').onkeydown=e=>{const c=e.target.closest?.('[data-ck]');if(c&&(e.key==='Enter'||e.key===' ')){e.preventDefault();tick(c.dataset.ck)}};
   $('view').onchange=e=>{const t=e.target;if(t.dataset.id)put('tasks',t.dataset.id,t.value)};
 }
